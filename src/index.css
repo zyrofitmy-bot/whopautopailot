@@ -1,0 +1,253 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Hide number input spinners globally */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+/* Font loading */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap&font-display=swap');
+
+@layer base {
+  :root {
+    /* ═══════════════════════════════════════════
+       ULTRA STATIC 3D DARK PURPLE THEME
+       (ZERO ANIMATION POLICY)
+       ═══════════════════════════════════════════ */
+    --background: 240 10% 4%;
+    --foreground: 0 0% 98%;
+
+    --card: 240 10% 6%;
+    --card-foreground: 0 0% 98%;
+
+    --popover: 240 10% 8%;
+    --popover-foreground: 0 0% 98%;
+
+    --primary: 260 85% 72%;
+    --primary-foreground: 240 10% 4%;
+
+    --secondary: 240 10% 12%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 240 10% 12%;
+    --muted-foreground: 240 5% 65%;
+
+    --accent: 260 85% 72%;
+    --accent-foreground: 240 10% 4%;
+
+    --success: 145 72% 52%;
+    --success-foreground: 152 50% 4%;
+
+    --warning: 42 90% 55%;
+    --warning-foreground: 42 90% 10%;
+
+    --destructive: 0 72% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 240 10% 15%;
+    --input: 240 10% 15%;
+    --ring: 260 85% 72%;
+
+    --radius: 1.5rem;
+
+    /* ════ NEON GRADIENTS ════ */
+    --gradient-primary: linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%);
+    --gradient-accent: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
+
+    /* ════ 3D DEPTH SHADOWS (STATIC) ════ */
+    --shadow-3d: 0 20px 50px -12px rgba(0, 0, 0, 0.9), inset 0 1px 1px rgba(255, 255, 255, 0.1);
+    --shadow-3d-active: 0 10px 20px -5px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.15);
+
+    /* Sidebar Dark */
+    --sidebar-background: 240 10% 5%;
+    --sidebar-foreground: 240 5% 80%;
+    --sidebar-primary: 260 85% 72%;
+    --sidebar-primary-foreground: 240 10% 4%;
+    --sidebar-accent: 240 10% 12%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 240 10% 15%;
+    --sidebar-ring: 260 85% 72%;
+  }
+}
+
+html {
+  font-size: 14px;
+}
+
+/* Global Policy: Minimal transitions, but animations allowed for loaders */
+* {
+  transition: none !important;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+    box-sizing: border-box;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeSpeed;
+    font-size: 0.95rem;
+    background-image:
+      radial-gradient(at 0% 0%, hsla(260, 85%, 72%, 0.1) 0px, transparent 50%),
+      radial-gradient(at 100% 100%, hsla(240, 10%, 15%, 0.2) 0px, transparent 50%);
+    background-attachment: fixed;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: 'Outfit', system-ui, sans-serif;
+    font-weight: 900;
+    letter-spacing: -0.05em;
+    text-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+  }
+
+  h1 {
+    @apply text-3xl sm:text-4xl md:text-5xl;
+    line-height: 1;
+  }
+
+  h2 {
+    @apply text-2xl sm:text-3xl;
+    line-height: 1.1;
+  }
+
+  h3 {
+    @apply text-xl sm:text-2xl;
+    line-height: 1.2;
+  }
+
+  label,
+  .label {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    @apply text-white/40 uppercase text-[9px];
+  }
+
+  ::selection {
+    background: rgba(167, 139, 250, 0.4);
+    color: white;
+  }
+}
+
+@layer components {
+
+  /* ════ STATIC 3D CARDS ════ */
+  .three-d-card {
+    @apply relative overflow-hidden rounded-[2rem];
+    background: rgba(20, 20, 28, 0.8);
+    backdrop-filter: blur(25px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: var(--shadow-3d);
+  }
+
+  .glass-premium {
+    @apply three-d-card;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(20, 20, 28, 0.9) 100%);
+  }
+
+  .glass-panel {
+    @apply rounded-2xl;
+    background: rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.05);
+  }
+
+  .gradient-text {
+    @apply bg-clip-text text-transparent font-black;
+    background-image: var(--gradient-primary);
+    filter: drop-shadow(0 0 5px rgba(167, 139, 250, 0.2));
+  }
+
+  /* ════ STATIC 3D BUTTONS ════ */
+  .btn-3d {
+    @apply relative overflow-hidden font-black rounded-2xl flex items-center justify-center;
+    background: var(--gradient-primary);
+    color: var(--primary-foreground);
+    box-shadow:
+      0 10px 0px 0px #5b21b6,
+      0 15px 30px -5px rgba(0, 0, 0, 0.5),
+      inset 0 1px 2px rgba(255, 255, 255, 0.4);
+    transform: translateY(-5px);
+  }
+
+  .btn-3d:active {
+    transform: translateY(-2px);
+    box-shadow:
+      0 5px 0px 0px #5b21b6,
+      0 10px 20px -5px rgba(0, 0, 0, 0.5);
+  }
+
+  .btn-glass {
+    @apply relative overflow-hidden font-bold rounded-2xl;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: white;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+  }
+
+  /* ════ NAVIGATION ════ */
+  .nav-link {
+    @apply flex items-center gap-3 px-4 py-3 rounded-2xl text-white/40 font-black;
+  }
+
+  .nav-link-active {
+    @apply text-white font-black bg-primary/20 border border-primary/30;
+    box-shadow: 0 0 20px -5px rgba(167, 139, 250, 0.3);
+  }
+
+  /* ════ INPUTS ════ */
+  .input-3d {
+    @apply bg-white/[0.04] border-white/10 rounded-2xl font-bold;
+    box-shadow: inset 0 3px 6px rgba(0, 0, 0, 0.4), 0 1px 1px rgba(255, 255, 255, 0.05);
+  }
+
+  .input-3d:focus {
+    @apply border-primary/40 bg-white/[0.07] ring-0 outline-none;
+  }
+
+  .glow-neon {
+    box-shadow: 0 0 25px rgba(167, 139, 250, 0.3);
+  }
+}
+
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(167, 139, 250, 0.2) transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: rgba(167, 139, 250, 0.3);
+    border-radius: 10px;
+  }
+}
+
+/* Minimal animation utility support */
+.animate-spin {
+  animation: spin 1s linear infinite !important;
+}
