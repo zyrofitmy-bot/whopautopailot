@@ -1,5 +1,5 @@
 # Whopautopilot 2.0 - Robots.txt
-# https://organicflow-main.vercel.app
+# https://whopautopailot-eight.vercel.app
 
 User-agent: Googlebot
 Allow: /
@@ -28,4 +28,4 @@ Disallow: /settings
 Disallow: /support
 
 # Sitemap
-Sitemap: https://organicflow-main.vercel.app/sitemap.xml
+Sitemap: https://whopautopailot-eight.vercel.app/sitemap.xml
