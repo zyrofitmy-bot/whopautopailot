@@ -24,7 +24,7 @@ const signupSchema = z.object({
 });
 
 const features = [
-  { icon: Activity, title: 'S-Curve Delivery', desc: 'Mimics natural viral growth patterns', bg: 'bg-[#ffdeed]/50', color: 'text-[#2563eb]' },
+  { icon: Activity, title: 'S-Curve Delivery', desc: 'Mimics natural viral growth patterns', bg: 'bg-[#0ea5e9]/10', color: 'text-[#0ea5e9]' },
   { icon: Shuffle, title: 'Random Variance', desc: 'Unpredictable quantities like real users', bg: 'bg-[#0ea5e9]/10', color: 'text-[#0ea5e9]' },
   { icon: Clock, title: 'Peak Hour Boost', desc: 'Automatic 1.5× boost during IST peaks', bg: 'bg-[#0ea5e9]/10', color: 'text-[#0ea5e9]' },
   { icon: Timer, title: 'Random Jitter', desc: 'Execution times vary — bot-proof', bg: 'bg-[#f59e0b]/10', color: 'text-[#f59e0b]' },
@@ -323,7 +323,7 @@ export default function Auth() {
                         {isSubmitting ? (
                           <span className="flex items-center gap-2 text-zinc-600">
                             <Loader2 className="h-5 w-5 animate-spin" style={{ animation: 'spin 1s linear infinite' }} />
-                            {isLogin ? 'AUTHENTICATING...' : 'CREATING O-TERMINAL...'}
+                            {isLogin ? 'AUTHENTICATING...' : 'CREATING ACCOUNT...'}
                           </span>
                         ) : (
                           <span className="flex items-center gap-2">
