@@ -79,7 +79,8 @@ export default function AdminOrders() {
       const { data, error } = await supabase
         .from('orders')
         .select('*, service:services(name, category)')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(100);
 
       if (error) throw error;
       return data;

@@ -94,74 +94,28 @@ export default function AdminUsers() {
   const { data: users, isLoading } = useQuery({
     queryKey: ['admin-all-users-with-subs'],
     queryFn: async () => {
-      const { data: profiles, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .order('created_at', { ascending: false });
-
+      const { data, error } = await supabase.rpc('get_admin_users_summary');
       if (error) throw error;
 
-      const usersWithDetails = await Promise.all(
-        (profiles || []).map(async (profile) => {
-          const { data: wallet } = await supabase
-            .from('wallets')
-            .select('balance, total_deposited, total_spent')
-            .eq('user_id', profile.user_id)
-            .single();
-
-          const { data: roleData } = await supabase
-            .from('user_roles')
-            .select('role')
-            .eq('user_id', profile.user_id)
-            .single();
-
-          const { data: subscription } = await supabase
-            .from('subscriptions')
-            .select('*')
-            .eq('user_id', profile.user_id)
-            .single();
-
-          // Get order counts for this user
-          const { count: singleActiveCount } = await supabase
-            .from('orders')
-            .select('id', { count: 'exact', head: true })
-            .eq('user_id', profile.user_id)
-            .in('status', ['pending', 'processing']);
-
-          const { count: singlePausedCount } = await supabase
-            .from('orders')
-            .select('id', { count: 'exact', head: true })
-            .eq('user_id', profile.user_id)
-            .eq('status', 'paused');
-
-          const { count: engagementActiveCount } = await supabase
-            .from('engagement_orders')
-            .select('id', { count: 'exact', head: true })
-            .eq('user_id', profile.user_id)
-            .in('status', ['pending', 'processing']);
-
-          const { count: engagementPausedCount } = await supabase
-            .from('engagement_orders')
-            .select('id', { count: 'exact', head: true })
-            .eq('user_id', profile.user_id)
-            .eq('status', 'paused');
-
-          return {
-            ...profile,
-            wallet: wallet || { balance: 0, total_deposited: 0, total_spent: 0 },
-            role: roleData?.role || 'user',
-            subscription: subscription || null,
-            orderCounts: {
-              singleActive: singleActiveCount || 0,
-              singlePaused: singlePausedCount || 0,
-              engagementActive: engagementActiveCount || 0,
-              engagementPaused: engagementPausedCount || 0,
-            },
-          } as UserProfile;
-        })
-      );
-
-      return usersWithDetails;
+      return (data || []).map((u: any) => ({
+        ...u,
+        wallet: {
+          balance: u.balance,
+          total_deposited: u.total_deposited,
+          total_spent: u.total_spent
+        },
+        subscription: u.subscription_plan !== 'none' ? {
+          plan_type: u.subscription_plan,
+          status: u.subscription_status,
+          expires_at: u.subscription_expires
+        } : null,
+        orderCounts: {
+          singleActive: u.active_single_orders,
+          singlePaused: u.paused_single_orders,
+          engagementActive: u.active_engagement_orders,
+          engagementPaused: u.paused_engagement_orders,
+        }
+      })) as UserProfile[];
     },
   });
 

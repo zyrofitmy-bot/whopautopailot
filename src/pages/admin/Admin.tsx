@@ -40,30 +40,26 @@ export default function Admin() {
   const [maintenanceMode, setMaintenanceMode] = useState(false);
   const [maintenanceLoaded, setMaintenanceLoaded] = useState(false);
 
-  // Fetch current global markup
-  const { data: platformSettings } = useQuery({
-    queryKey: ['platform-settings'],
+  // Optimized Dashboard Stats fetch
+  const { data: dashboardStats, isLoading: statsLoading } = useQuery({
+    queryKey: ['admin-dashboard-stats'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('platform_settings')
-        .select('*')
-        .eq('id', 'global')
-        .single();
+      const { data, error } = await supabase.rpc('get_admin_dashboard_stats');
       if (error) throw error;
       return data;
     },
   });
 
   useEffect(() => {
-    if (platformSettings && !markupLoaded) {
-      setMarkupInput(String(platformSettings.global_markup_percent ?? 0));
+    if (dashboardStats && !markupLoaded) {
+      setMarkupInput(String(dashboardStats.markup ?? 0));
       setMarkupLoaded(true);
     }
-    if (platformSettings && !maintenanceLoaded) {
-      setMaintenanceMode(Boolean((platformSettings as any).maintenance_mode));
+    if (dashboardStats && !maintenanceLoaded) {
+      setMaintenanceMode(Boolean(dashboardStats.maintenance_mode));
       setMaintenanceLoaded(true);
     }
-  }, [platformSettings, markupLoaded, maintenanceLoaded]);
+  }, [dashboardStats, markupLoaded, maintenanceLoaded]);
 
   // Save markup mutation
   const saveMarkupMutation = useMutation({
@@ -76,8 +72,7 @@ export default function Admin() {
     },
     onSuccess: () => {
       toast.success('Global markup updated successfully!');
-      queryClient.invalidateQueries({ queryKey: ['platform-settings'] });
-      queryClient.invalidateQueries({ queryKey: ['platform-settings-markup'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-dashboard-stats'] });
     },
     onError: (err: Error) => toast.error(err.message),
   });
@@ -92,63 +87,18 @@ export default function Admin() {
       if (error) throw error;
     },
     onSuccess: (_, enabled) => {
-      toast.success(enabled ? 'Maintenance mode enabled — users will see a maintenance page' : 'Maintenance mode disabled — site is live again');
-      queryClient.invalidateQueries({ queryKey: ['platform-settings'] });
-      queryClient.invalidateQueries({ queryKey: ['maintenance-mode'] });
+      toast.success(enabled ? 'Maintenance mode enabled' : 'Maintenance mode disabled');
+      queryClient.invalidateQueries({ queryKey: ['admin-dashboard-stats'] });
     },
     onError: (err: Error) => toast.error(err.message),
   });
 
-  // Stats queries
-  const { data: userCount } = useQuery({
-    queryKey: ['admin-users-count'],
-    queryFn: async () => {
-      const { count } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true });
-      return count || 0;
-    },
-  });
-
-  const { data: orderStats } = useQuery({
-    queryKey: ['admin-order-stats'],
-    queryFn: async () => {
-      const { data } = await supabase.from('orders').select('status, price');
-      const total = data?.length || 0;
-      const completed = data?.filter((o) => o.status === 'completed').length || 0;
-      const revenue = data?.reduce((sum, o) => sum + Number(o.price), 0) || 0;
-      return { total, completed, revenue };
-    },
-  });
-
-  const { data: engagementStats } = useQuery({
-    queryKey: ['admin-engagement-stats'],
-    queryFn: async () => {
-      const { data } = await supabase.from('engagement_orders').select('status, total_price');
-      const total = data?.length || 0;
-      const revenue = data?.reduce((sum, o) => sum + Number(o.total_price), 0) || 0;
-      return { total, revenue };
-    },
-  });
-
-  const { data: serviceCount } = useQuery({
-    queryKey: ['admin-services-count'],
-    queryFn: async () => {
-      const { count } = await supabase
-        .from('services')
-        .select('*', { count: 'exact', head: true });
-      return count || 0;
-    },
-  });
-
   // INSTANT RENDER - No blocking loader, redirect in useEffect if needed
 
-  if (!isAdmin) {
-    return <Navigate to="/dashboard" replace />;
-  }
-
-  const totalRevenue = (orderStats?.revenue || 0) + (engagementStats?.revenue || 0);
-  const totalOrders = (orderStats?.total || 0) + (engagementStats?.total || 0);
+  const totalRevenue = dashboardStats?.total_revenue || 0;
+  const totalOrders = dashboardStats?.total_orders || 0;
+  const userCount = dashboardStats?.user_count || 0;
+  const serviceCount = dashboardStats?.service_count || 0;
 
   return (
     <DashboardLayout>
