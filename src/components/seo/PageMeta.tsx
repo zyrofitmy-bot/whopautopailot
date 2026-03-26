@@ -7,9 +7,9 @@ interface PageMetaProps {
   noIndex?: boolean;
 }
 
-const DEFAULT_DESCRIPTION = 'Whopautopilot 2.0 - Revolutionary organic social media growth platform. Get natural engagement with variable delivery patterns. 100% safe for your accounts.';
-const SITE_NAME = 'Whopautopilot 2.0';
-const BASE_URL = 'https://whopautopilot.pro';
+const DEFAULT_DESCRIPTION = 'Whopautopailot - Revolutionary organic social media growth platform. Get natural engagement with variable delivery patterns. 100% safe for your accounts.';
+const SITE_NAME = 'Whopautopailot';
+const BASE_URL = 'https://whopautopailot.pro';
 
 export function PageMeta({
   title,
@@ -20,7 +20,7 @@ export function PageMeta({
   useEffect(() => {
     // Set title
     const fullTitle = title === 'Home'
-      ? `${SITE_NAME} - Grow Your Social Media The Natural Way`
+      ? `${SITE_NAME} - Smart Automation Console`
       : `${title} | ${SITE_NAME}`;
     document.title = fullTitle;
 

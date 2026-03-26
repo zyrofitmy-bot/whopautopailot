@@ -30,7 +30,7 @@ const Index = () => {
           <div className="w-10 h-10 bg-black rounded-[14px] flex items-center justify-center shadow-[0_0_20px_rgba(147,51,234,0.3)] overflow-hidden p-[2px]">
             <Zap className="w-10 h-10 text-[#0ea5e9] drop-shadow-[0_0_15px_rgba(14,165,233,0.5)]" />
           </div>
-          <span className="text-xl md:text-2xl font-[900] tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-purple-800 to-fuchsia-700">Whopautopilot 2.0</span>
+          <span className="text-xl md:text-2xl font-[900] tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-purple-800 to-fuchsia-700">Whopautopailot</span>
         </div>
 
         <Link to="/auth">

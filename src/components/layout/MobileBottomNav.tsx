@@ -21,7 +21,7 @@ export function MobileBottomNav() {
             <div className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center bg-black/50 border border-white/10 shadow-[0_0_15px_rgba(6,182,212,0.3)]">
               <Zap className="w-5 h-5 text-[#0ea5e9]" />
             </div>
-            <span className="font-[900] text-lg tracking-tight text-white drop-shadow-md">Whopautopilot 2.0</span>
+            <span className="font-[900] text-lg tracking-tight text-white drop-shadow-md">Whopautopailot</span>
           </div>
 
           <div className="w-11" />

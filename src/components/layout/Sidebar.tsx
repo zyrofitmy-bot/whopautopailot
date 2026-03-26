@@ -68,7 +68,7 @@ export function Sidebar({ onClose }: SidebarProps) {
               <Zap className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <h1 className="font-black text-[15px] tracking-tight text-white leading-none">Whopautopilot 2.0</h1>
+              <h1 className="font-black text-[15px] tracking-tight text-white leading-none">Whopautopailot</h1>
               <p className="text-[8px] font-black uppercase tracking-[0.2em] text-primary/60 mt-1">Pro Console</p>
             </div>
           </div>

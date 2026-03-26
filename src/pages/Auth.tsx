@@ -165,7 +165,7 @@ export default function Auth() {
           <div className="w-20 h-20 bg-black border-2 border-white/20 rounded-[2.5rem] flex items-center justify-center mb-6 overflow-hidden p-0">
             <Zap className="w-10 h-10 text-[#0ea5e9] drop-shadow-[0_0_15px_rgba(14,165,233,0.5)]" />
           </div>
-          <h1 className="text-4xl font-[1000] text-white tracking-tighter mb-1">Whopautopilot 2.0</h1>
+          <h1 className="text-4xl font-[1000] text-white tracking-tighter mb-1">Whopautopailot</h1>
           <p className="text-[11px] font-black uppercase tracking-[0.5em] text-[#0ea5e9] opacity-80">AUTHENTICATION</p>
         </div>
 
@@ -366,7 +366,7 @@ export default function Auth() {
         {/* Telegram Channel Link */}
         <div className="mt-12 group">
           <a
-            href="https://t.me/whopautopilotofficial"
+            href="https://t.me/whopautopailotofficial"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-[#0ea5e9]/10 hover:border-[#0ea5e9]/30 transition-all duration-300 group/link"
