@@ -20,8 +20,8 @@ By participating in this project, you agree to abide by our [Code of Conduct](CO
 1. **Fork** the repository on GitHub
 2. **Clone** your fork locally:
    ```bash
-   git clone https://github.com/your-username/organicsmm.git
-   cd organicsmm
+   git clone https://github.com/your-username/whopautopilot.git
+   cd whopautopilot
    ```
 3. **Install dependencies:**
    ```bash
@@ -102,7 +102,7 @@ When suggesting a feature, please include:
 
 ## 📬 Questions?
 
-Feel free to open a [GitHub Discussion](https://github.com/organicsmm/organicsmm/discussions) for questions or general feedback.
+Feel free to open a [GitHub Discussion](https://github.com/whopautopilot/whopautopilot/discussions) for questions or general feedback.
 
 ---
 

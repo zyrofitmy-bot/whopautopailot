@@ -166,33 +166,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signUp = async (email: string, password: string, fullName?: string) => {
-    console.log('--- useAuth: signUp started ---');
+    console.log('--- useAuth: signUp started (direct bypass) ---');
     try {
-      const redirectUrl = `${window.location.origin}/engagement-order`;
-
-      const { data, error } = await supabase.auth.signUp({
-        email: email.trim().toLowerCase(),
-        password,
-        options: {
-          emailRedirectTo: redirectUrl,
-          data: {
-            full_name: fullName || '',
-          },
-        },
+      const { data, error } = await supabase.functions.invoke('auto-verify-signup', {
+        body: { 
+          email: email.trim().toLowerCase(), 
+          password, 
+          fullName: fullName || '' 
+        }
       });
 
-      if (error) {
-        console.error('--- useAuth: signUp error ---', error.message);
-        return { error: error as Error };
+      if (error || (data && data.error)) {
+        const errorMsg = error?.message || data?.error || 'Signup failed';
+        console.error('--- useAuth: signUp error ---', errorMsg);
+        return { error: new Error(errorMsg) };
       }
 
-      // If user already exists, Supabase returns data but with identities = []
-      if (data.user && data.user.identities && data.user.identities.length === 0) {
-        console.warn('--- useAuth: signUp user already exists ---');
-        return { error: new Error('This email is already registered. Please login instead.') };
+      console.log('--- useAuth: signUp api success, now logging in ---');
+      
+      // Auto-verify created user, now simply log them in
+      const signInRes = await supabase.auth.signInWithPassword({
+        email: email.trim().toLowerCase(),
+        password,
+      });
+      
+      if (signInRes.error) {
+        console.error('--- useAuth: signIn after custom signup error ---', signInRes.error);
+        return { error: signInRes.error };
       }
 
-      console.log('--- useAuth: signUp success ---');
+      console.log('--- useAuth: signUp & login success ---');
       return { error: null };
     } catch (error) {
       console.error('--- useAuth: signUp catch ---', error);

@@ -9,6 +9,7 @@ import {
   MousePointer2,
   Sparkles,
   Award,
+  Zap,
 } from 'lucide-react';
 
 const Index = () => {
@@ -27,9 +28,9 @@ const Index = () => {
       <nav className="w-full max-w-[500px] md:max-w-[800px] flex items-center justify-between px-5 py-4 mx-auto relative z-50 bg-white/70 backdrop-blur-[30px] border border-t-0 border-white/60 shadow-[0_20px_40px_rgba(147,51,234,0.05)] rounded-b-[2rem]">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-black rounded-[14px] flex items-center justify-center shadow-[0_0_20px_rgba(147,51,234,0.3)] overflow-hidden p-[2px]">
-            <img src="/favicon.png" alt="Logo" className="w-full h-full object-cover rounded-xl" />
+            <Zap className="w-10 h-10 text-[#0ea5e9] drop-shadow-[0_0_15px_rgba(14,165,233,0.5)]" />
           </div>
-          <span className="text-xl md:text-2xl font-[900] tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-purple-800 to-fuchsia-700">OrganicSMM</span>
+          <span className="text-xl md:text-2xl font-[900] tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-purple-800 to-fuchsia-700">Whopautopilot 2.0</span>
         </div>
 
         <Link to="/auth">

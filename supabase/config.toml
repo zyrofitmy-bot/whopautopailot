@@ -1,4 +1,4 @@
-project_id = "nenuwlbnaxesmnpfjlrl"
+project_id = "rfmrqdlizotzxbuiqhrx"
 
 [functions.import-services]
 verify_jwt = false
@@ -40,4 +40,7 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.public-api]
+verify_jwt = false
+
+[functions.auto-verify-signup]
 verify_jwt = false

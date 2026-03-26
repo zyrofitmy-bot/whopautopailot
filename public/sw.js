@@ -1,5 +1,5 @@
-// 💎 OrganicSMM Pro Service Worker (Lite)
-const CACHE_NAME = 'organicsmm-app-v1';
+// 💎 Whopautopilot 2.0 Pro Service Worker (Lite)
+const CACHE_NAME = 'whopautopilot-app-v1';
 const ASSETS_TO_CACHE = [
     '/',
     '/index.html',

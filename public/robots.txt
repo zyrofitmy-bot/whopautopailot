@@ -1,4 +1,4 @@
-# OrganicSMM - Robots.txt
+# Whopautopilot 2.0 - Robots.txt
 # https://organicflow-main.vercel.app
 
 User-agent: Googlebot

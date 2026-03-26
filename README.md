@@ -110,8 +110,8 @@ OrganicFlow helps social media professionals:
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/organicsmm/organicsmm.git
-   cd organicsmm
+   git clone https://github.com/whopautopilot/whopautopilot.git
+   cd whopautopilot
    ```
 
 2. **Install dependencies:**
@@ -149,7 +149,7 @@ Or apply migrations manually from the `supabase/migrations/` directory.
 ## 🏗 Architecture
 
 ```
-organicsmm/
+whopautopilot/
 ├── src/
 │   ├── components/       # Reusable UI components
 │   │   ├── engagement/   # Engagement order components
@@ -232,8 +232,8 @@ If you discover a security vulnerability, please see our [Security Policy](SECUR
 
 ## 📬 Contact
 
-- **Issues**: [GitHub Issues](https://github.com/organicsmm/organicsmm/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/organicsmm/organicsmm/discussions)
+- **Issues**: [GitHub Issues](https://github.com/whopautopilot/whopautopilot/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/whopautopilot/whopautopilot/discussions)
 
 ---
 

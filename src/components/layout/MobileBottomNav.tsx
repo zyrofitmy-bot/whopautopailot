@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Menu } from 'lucide-react';
+import { Menu, Zap } from 'lucide-react';
 import { Sidebar } from './Sidebar';
 
 export function MobileBottomNav() {
@@ -9,7 +9,7 @@ export function MobileBottomNav() {
     <>
       {/* Mobile Header - Flush to top edge, slightly taller */}
       <header className="fixed top-0 left-0 right-0 z-40 lg:hidden">
-        <div className="flex items-center justify-between h-16 px-5 bg-[#0a0a0c]/80 backdrop-blur-2xl border-b border-white/10 shadow-lg">
+        <div className="flex items-center justify-between h-16 px-5 bg-[#04060c]/80 backdrop-blur-2xl border-b border-white/10 shadow-lg">
           <button
             onClick={() => setSidebarOpen(true)}
             className="flex items-center justify-center w-11 h-11 rounded-xl bg-white/5 border border-white/10 active:scale-95 transition-all"
@@ -18,10 +18,10 @@ export function MobileBottomNav() {
           </button>
 
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center bg-black border border-white/10 p-1 shadow-lg">
-              <img src="/favicon.png" alt="OrganicSMM" className="w-full h-full object-cover rounded-lg" />
+            <div className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center bg-black/50 border border-white/10 shadow-[0_0_15px_rgba(6,182,212,0.3)]">
+              <Zap className="w-5 h-5 text-[#0ea5e9]" />
             </div>
-            <span className="font-[900] text-lg tracking-tight text-white drop-shadow-md">OrganicSMM</span>
+            <span className="font-[900] text-lg tracking-tight text-white drop-shadow-md">Whopautopilot 2.0</span>
           </div>
 
           <div className="w-11" />

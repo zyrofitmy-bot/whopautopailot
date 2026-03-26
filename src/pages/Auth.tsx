@@ -24,8 +24,8 @@ const signupSchema = z.object({
 });
 
 const features = [
-  { icon: Activity, title: 'S-Curve Delivery', desc: 'Mimics natural viral growth patterns', bg: 'bg-[#ffdeed]/50', color: 'text-[#d946ef]' },
-  { icon: Shuffle, title: 'Random Variance', desc: 'Unpredictable quantities like real users', bg: 'bg-[#9b87f5]/10', color: 'text-[#9b87f5]' },
+  { icon: Activity, title: 'S-Curve Delivery', desc: 'Mimics natural viral growth patterns', bg: 'bg-[#ffdeed]/50', color: 'text-[#2563eb]' },
+  { icon: Shuffle, title: 'Random Variance', desc: 'Unpredictable quantities like real users', bg: 'bg-[#0ea5e9]/10', color: 'text-[#0ea5e9]' },
   { icon: Clock, title: 'Peak Hour Boost', desc: 'Automatic 1.5× boost during IST peaks', bg: 'bg-[#0ea5e9]/10', color: 'text-[#0ea5e9]' },
   { icon: Timer, title: 'Random Jitter', desc: 'Execution times vary — bot-proof', bg: 'bg-[#f59e0b]/10', color: 'text-[#f59e0b]' },
 ];
@@ -141,7 +141,7 @@ export default function Auth() {
   const reset = () => { setError(''); setSuccessMessage(''); setShowVerifyEmail(false); };
 
   return (
-    <div className="min-h-screen bg-[#0a0a0c] flex items-center justify-center p-4 md:p-10 font-sans selection:bg-[#9b87f5]/40 overflow-hidden relative">
+    <div className="min-h-screen bg-[#04060c] flex items-center justify-center p-4 md:p-10 font-sans selection:bg-[#0ea5e9]/40 overflow-hidden relative">
 
       {/* ── DYNAMIC 3D BACKGROUND ── */}
       <style dangerouslySetInnerHTML={{ __html: `
@@ -151,10 +151,10 @@ export default function Auth() {
         }
       `}} />
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none bg-[#08080a]">
-        <div className="absolute top-[-20%] right-[-10%] w-[70%] h-[70%] bg-[#9b87f5]/20 blur-[150px] rounded-full" />
-        <div className="absolute bottom-[-20%] left-[-10%] w-[60%] h-[60%] bg-[#d946ef]/10 blur-[120px] rounded-full" />
+        <div className="absolute top-[-20%] right-[-10%] w-[70%] h-[70%] bg-[#0ea5e9]/20 blur-[150px] rounded-full" />
+        <div className="absolute bottom-[-20%] left-[-10%] w-[60%] h-[60%] bg-[#2563eb]/10 blur-[120px] rounded-full" />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full opacity-[0.03]"
-          style={{ backgroundImage: 'linear-gradient(#9b87f5 1px, transparent 1px), linear-gradient(90deg, #9b87f5 1px, transparent 1px)', backgroundSize: '30px 30px' }} />
+          style={{ backgroundImage: 'linear-gradient(#0ea5e9 1px, transparent 1px), linear-gradient(90deg, #0ea5e9 1px, transparent 1px)', backgroundSize: '30px 30px' }} />
       </div>
 
       {/* ── MAIN AUTH CONSOLE CARD ── */}
@@ -163,21 +163,21 @@ export default function Auth() {
         {/* Logo Section */}
         <div className="flex flex-col items-center mb-10 text-center">
           <div className="w-20 h-20 bg-black border-2 border-white/20 rounded-[2.5rem] flex items-center justify-center mb-6 overflow-hidden p-0">
-            <img src="/favicon.png" alt="Logo" className="w-full h-full object-cover" />
+            <Zap className="w-10 h-10 text-[#0ea5e9] drop-shadow-[0_0_15px_rgba(14,165,233,0.5)]" />
           </div>
-          <h1 className="text-4xl font-[1000] text-white tracking-tighter mb-1">OrganicSMM</h1>
-          <p className="text-[11px] font-black uppercase tracking-[0.5em] text-[#9b87f5] opacity-80">AUTHENTICATION</p>
+          <h1 className="text-4xl font-[1000] text-white tracking-tighter mb-1">Whopautopilot 2.0</h1>
+          <p className="text-[11px] font-black uppercase tracking-[0.5em] text-[#0ea5e9] opacity-80">AUTHENTICATION</p>
         </div>
 
         {/* The Glass Card Container */}
         <div className="relative">
-          <div className="bg-[#121216]/90 backdrop-blur-3xl border border-white/10 rounded-[3.5rem] p-8 md:p-14 relative overflow-hidden ring-1 ring-white/5">
+          <div className="bg-[#0a0f1c]/90 backdrop-blur-3xl border border-white/10 rounded-[3.5rem] p-8 md:p-14 relative overflow-hidden ring-1 ring-white/5">
 
             {/* Upper Light Line */}
             <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-60" />
 
             {/* Home Redirect */}
-            <Link to="/" className="absolute top-8 right-10 text-[10px] font-black uppercase tracking-widest text-white/30 hover:text-[#9b87f5] transition-none flex items-center gap-2 group">
+            <Link to="/" className="absolute top-8 right-10 text-[10px] font-black uppercase tracking-widest text-white/30 hover:text-[#0ea5e9] transition-none flex items-center gap-2 group">
               <ArrowLeft className="w-4 h-4 transition-none group-hover:-translate-x-1" /> RETURN
             </Link>
 
@@ -185,7 +185,7 @@ export default function Auth() {
               <h2 className="text-2xl font-[1000] text-white mb-2 leading-none">
                 {isForgotPassword ? 'Reset Password' : isLogin ? 'Welcome Back.' : 'Create Account.'}
               </h2>
-              <p className="text-[10px] font-black uppercase tracking-widest text-[#9b87f5]/60 mb-10">
+              <p className="text-[10px] font-black uppercase tracking-widest text-[#0ea5e9]/60 mb-10">
                 {isForgotPassword
                   ? 'ENTER EMAIL TO CONTINUE'
                   : isLogin
@@ -197,20 +197,20 @@ export default function Auth() {
               {showVerifyEmail ? (
                 <div className="text-center py-6">
                   <div className="w-24 h-24 bg-white/5 border border-white/10 rounded-[3rem] flex items-center justify-center mx-auto mb-8">
-                    <Mail className="h-10 w-10 text-[#9b87f5]" />
+                    <Mail className="h-10 w-10 text-[#0ea5e9]" />
                   </div>
                   <h3 className="text-2xl font-[1000] text-white mb-4 tracking-tight">Check Your Inbox</h3>
                   <p className="text-[11px] font-bold text-white/30 mb-2 max-w-[240px] mx-auto leading-relaxed border-t border-white/5 pt-6">
                     A verification link has been sent to your email address.
                   </p>
-                  <p className="text-[11px] font-bold text-[#9b87f5]/80 mb-8 max-w-[240px] mx-auto leading-relaxed">
+                  <p className="text-[11px] font-bold text-[#0ea5e9]/80 mb-8 max-w-[240px] mx-auto leading-relaxed">
                     Note: If you don't see it, please check your <span className="text-white">spam</span> or <span className="text-white">junk</span> folder.
                   </p>
-                  <div className="bg-[#9b87f5]/5 p-5 rounded-2xl border border-[#9b87f5]/20 mb-10 ring-1 ring-[#9b87f5]/10">
-                    <span className="text-xs font-black text-[#9b87f5] tracking-tight">{email}</span>
+                  <div className="bg-[#0ea5e9]/5 p-5 rounded-2xl border border-[#0ea5e9]/20 mb-10 ring-1 ring-[#0ea5e9]/10">
+                    <span className="text-xs font-black text-[#0ea5e9] tracking-tight">{email}</span>
                   </div>
                   <button type="button" onClick={() => { setShowVerifyEmail(false); setIsLogin(true); reset(); }}
-                    className="text-[10px] font-black uppercase tracking-[0.3em] text-[#9b87f5] hover:text-white transition-none underline underline-offset-8 decoration-2 decoration-[#9b87f5]/40">
+                    className="text-[10px] font-black uppercase tracking-[0.3em] text-[#0ea5e9] hover:text-white transition-none underline underline-offset-8 decoration-2 decoration-[#0ea5e9]/40">
                     ← BACK TO GATEWAY
                   </button>
                 </div>
@@ -227,7 +227,7 @@ export default function Auth() {
                           placeholder="name@example.com"
                           value={email}
                           onChange={e => setEmail(e.target.value)}
-                          className="h-14 rounded-2xl border-white/5 bg-white/5 focus:bg-white/10 focus:border-[#9b87f5]/50 text-white font-bold px-6 border-2 transition-none"
+                          className="h-14 rounded-2xl border-white/5 bg-white/5 focus:bg-white/10 focus:border-[#0ea5e9]/50 text-white font-bold px-6 border-2 transition-none"
                         />
                       </div>
 
@@ -245,7 +245,7 @@ export default function Auth() {
                         </div>
                       )}
 
-                      <Button type="submit" disabled={isSubmitting} className="w-full h-16 rounded-2xl bg-[#9b87f5] hover:bg-[#8b76e5] text-white font-black text-sm uppercase tracking-widest transition-none disabled:opacity-80">
+                      <Button type="submit" disabled={isSubmitting} className="w-full h-16 rounded-2xl bg-[#0ea5e9] hover:bg-[#8b76e5] text-white font-black text-sm uppercase tracking-widest transition-none disabled:opacity-80">
                         {isSubmitting ? (
                           <span className="flex items-center gap-2">
                             <Loader2 className="h-5 w-5 animate-spin" style={{ animation: 'spin 1s linear infinite' }} /> 
@@ -273,7 +273,7 @@ export default function Auth() {
                             placeholder="John Doe"
                             value={fullName}
                             onChange={e => setFullName(e.target.value)}
-                            className="h-14 rounded-2xl border-white/5 bg-white/5 focus:bg-white/10 focus:border-[#9b87f5]/50 text-white font-bold px-6 border-2 transition-none placeholder:text-white/10"
+                            className="h-14 rounded-2xl border-white/5 bg-white/5 focus:bg-white/10 focus:border-[#0ea5e9]/50 text-white font-bold px-6 border-2 transition-none placeholder:text-white/10"
                           />
                         </div>
                       )}
@@ -285,7 +285,7 @@ export default function Auth() {
                           placeholder="name@example.com"
                           value={email}
                           onChange={e => setEmail(e.target.value)}
-                          className="h-14 rounded-2xl border-white/5 bg-white/5 focus:bg-white/10 focus:border-[#9b87f5]/50 text-white font-bold px-6 border-2 transition-none placeholder:text-white/10"
+                          className="h-14 rounded-2xl border-white/5 bg-white/5 focus:bg-white/10 focus:border-[#0ea5e9]/50 text-white font-bold px-6 border-2 transition-none placeholder:text-white/10"
                         />
                       </div>
 
@@ -293,7 +293,7 @@ export default function Auth() {
                         <div className="flex items-center justify-between px-1">
                           <Label className="text-[10px] font-black uppercase tracking-widest text-white/30">PASSWORD</Label>
                           {isLogin && (
-                            <button type="button" onClick={() => setIsForgotPassword(true)} className="text-[9px] font-black uppercase tracking-widest text-[#9b87f5]/40 hover:text-[#9b87f5] transition-none">
+                            <button type="button" onClick={() => setIsForgotPassword(true)} className="text-[9px] font-black uppercase tracking-widest text-[#0ea5e9]/40 hover:text-[#0ea5e9] transition-none">
                               FORGOT PASSWORD?
                             </button>
                           )}
@@ -304,9 +304,9 @@ export default function Auth() {
                             placeholder="••••••••"
                             value={password}
                             onChange={e => setPassword(e.target.value)}
-                            className="h-14 rounded-2xl border-white/5 bg-white/5 focus:bg-white/10 focus:border-[#9b87f5]/80 text-white font-bold px-6 border-2 transition-none placeholder:text-white/5 pr-14"
+                            className="h-14 rounded-2xl border-white/5 bg-white/5 focus:bg-white/10 focus:border-[#0ea5e9]/80 text-white font-bold px-6 border-2 transition-none placeholder:text-white/5 pr-14"
                           />
-                          <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-5 top-1/2 -translate-y-1/2 text-white/20 hover:text-[#9b87f5] transition-none">
+                          <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-5 top-1/2 -translate-y-1/2 text-white/20 hover:text-[#0ea5e9] transition-none">
                             {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                           </button>
                         </div>
@@ -336,7 +336,7 @@ export default function Auth() {
                       <div className="pt-4 text-center">
                         <button type="button" onClick={() => setIsLogin(!isLogin)} className="text-[10px] font-bold text-white/20 tracking-widest uppercase">
                           {isLogin ? "Don't have an account? " : 'Already have an account? '}
-                          <span className="text-[#9b87f5] font-black ml-1 border-b border-[#9b87f5]/30 hover:text-white transition-colors">{isLogin ? 'SIGN UP' : 'SIGN IN'}</span>
+                          <span className="text-[#0ea5e9] font-black ml-1 border-b border-[#0ea5e9]/30 hover:text-white transition-colors">{isLogin ? 'SIGN UP' : 'SIGN IN'}</span>
                         </button>
                       </div>
                     </div>
@@ -366,10 +366,10 @@ export default function Auth() {
         {/* Telegram Channel Link */}
         <div className="mt-12 group">
           <a
-            href="https://t.me/organicsmmofficial"
+            href="https://t.me/whopautopilotofficial"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-[#9b87f5]/10 hover:border-[#9b87f5]/30 transition-all duration-300 group/link"
+            className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-[#0ea5e9]/10 hover:border-[#0ea5e9]/30 transition-all duration-300 group/link"
           >
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-[#0088cc]/20 flex items-center justify-center border border-[#0088cc]/30 shadow-inner group-hover/link:bg-[#0088cc]/30 transition-all">
@@ -378,11 +378,11 @@ export default function Auth() {
                 </svg>
               </div>
               <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#9b87f5] mb-0.5">Community Gateway</p>
-                <p className="text-sm font-bold text-white group-hover/link:text-[#9b87f5] transition-colors">Join Official Telegram</p>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#0ea5e9] mb-0.5">Community Gateway</p>
+                <p className="text-sm font-bold text-white group-hover/link:text-[#0ea5e9] transition-colors">Join Official Telegram</p>
               </div>
             </div>
-            <ArrowLeft className="w-5 h-5 text-white/20 rotate-180 group-hover/link:text-[#9b87f5] group-hover/link:translate-x-1 transition-all" />
+            <ArrowLeft className="w-5 h-5 text-white/20 rotate-180 group-hover/link:text-[#0ea5e9] group-hover/link:translate-x-1 transition-all" />
           </a>
         </div>
       </div>

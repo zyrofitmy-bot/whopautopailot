@@ -64,12 +64,12 @@ export function Sidebar({ onClose }: SidebarProps) {
         {/* Logo Section */}
         <div className="flex h-[80px] items-center justify-between px-6">
           <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 bg-black border border-white/20 rounded-xl flex items-center justify-center overflow-hidden shadow-lg border-primary/20 p-1">
-              <img src="/favicon.png" alt="Logo" className="w-full h-full object-cover rounded-lg" />
+            <div className="w-10 h-10 bg-black/50 border border-white/10 rounded-xl flex items-center justify-center overflow-hidden shadow-[0_0_15px_rgba(6,182,212,0.3)]">
+              <Zap className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <h1 className="font-black text-[15px] tracking-tight text-white leading-none">OrganicSMM</h1>
-              <p className="text-[8px] font-black uppercase tracking-[0.2em] text-primary/40 mt-1">Pro Console</p>
+              <h1 className="font-black text-[15px] tracking-tight text-white leading-none">Whopautopilot 2.0</h1>
+              <p className="text-[8px] font-black uppercase tracking-[0.2em] text-primary/60 mt-1">Pro Console</p>
             </div>
           </div>
           <Button

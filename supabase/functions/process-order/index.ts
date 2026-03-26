@@ -27,20 +27,24 @@ serve(async (req) => {
     }
 
     const token = authHeader.replace('Bearer ', '')
-    const { data: claimsData } = await supabase.auth.getClaims(token)
+    const { data: { user: authUser }, error: verifyError } = await supabase.auth.getUser(token)
 
-    // Allow user JWT (has sub) OR service_role JWT (internal call from public-api)
-    const isUserJwt = !!claimsData?.claims?.sub
-    const isServiceRole = claimsData?.claims?.role === 'service_role'
-
-    if (!isUserJwt && !isServiceRole) {
-      console.error('Auth failed: not a user JWT or service_role JWT')
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      })
+    if (verifyError || !authUser) {
+      // If user token fails, check if it's a service role key (for internal calls)
+      // For simplicity in this environment, we'll check if the token matches the service role key
+      if (token === Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')) {
+        const user = { id: 'system' }
+        // Proceed as system (bypass sub check)
+      } else {
+        console.error('Auth failed:', verifyError?.message)
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        })
+      }
     }
 
-    const user = { id: claimsData?.claims?.sub as string ?? 'system' }
+    const user = { id: authUser?.id ?? 'system' }
+    const isServiceRole = user.id === 'system'
 
     // Validate active subscription (Required for new orders)
     // First, check if user is admin (admins bypass subscription check)
@@ -52,15 +56,21 @@ serve(async (req) => {
         .single()
 
       if (userRole?.role !== 'admin') {
-        const { data: subscription } = await supabase
+        const { data: subscription, error: subError } = await supabase
           .from('subscriptions')
-          .select('status, plan_type')
+          .select('id, status, plan_type')
           .eq('user_id', user.id)
-          .single()
+          .maybeSingle()
+
+        console.log(`[process-order] Subscription check for ${user.id}:`, JSON.stringify(subscription))
+        if (subError) console.error(`[process-order] Subscription fetch error:`, subError.message)
 
         if (!subscription || subscription.status !== 'active' || subscription.plan_type === 'trial') {
           console.error('User does not have an active subscription')
-          return new Response(JSON.stringify({ error: 'Subscription required to place orders. Please select a plan from your dashboard.' }), {
+          return new Response(JSON.stringify({ 
+            error: 'Subscription required to place orders. Please select a plan from your dashboard.',
+            debug: { userId: user.id, foundSub: subscription }
+          }), {
             status: 403,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
           })

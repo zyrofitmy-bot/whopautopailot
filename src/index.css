@@ -21,62 +21,61 @@ input[type="number"] {
 @layer base {
   :root {
     /* ═══════════════════════════════════════════
-       ULTRA STATIC 3D DARK PURPLE THEME
-       (ZERO ANIMATION POLICY)
+       ULTRA DEEP PREMIUM AI THEME (WHOPAUTOPILOT 2.0)
        ═══════════════════════════════════════════ */
-    --background: 240 10% 4%;
-    --foreground: 0 0% 98%;
+    --background: 222 47% 3%; /* Deep Space Black/Blue */
+    --foreground: 210 40% 98%;
 
-    --card: 240 10% 6%;
-    --card-foreground: 0 0% 98%;
+    --card: 222 47% 5%;
+    --card-foreground: 210 40% 98%;
 
-    --popover: 240 10% 8%;
-    --popover-foreground: 0 0% 98%;
+    --popover: 222 47% 5%;
+    --popover-foreground: 210 40% 98%;
 
-    --primary: 260 85% 72%;
-    --primary-foreground: 240 10% 4%;
+    --primary: 199 89% 48%; /* Vibrant Cyan/Blue #0ea5e9 */
+    --primary-foreground: 222 47% 3%;
 
-    --secondary: 240 10% 12%;
-    --secondary-foreground: 0 0% 98%;
+    --secondary: 222 47% 10%;
+    --secondary-foreground: 210 40% 98%;
 
-    --muted: 240 10% 12%;
-    --muted-foreground: 240 5% 65%;
+    --muted: 222 47% 10%;
+    --muted-foreground: 215 20.2% 65.1%;
 
-    --accent: 260 85% 72%;
-    --accent-foreground: 240 10% 4%;
+    --accent: 199 89% 48%;
+    --accent-foreground: 222 47% 3%;
 
-    --success: 145 72% 52%;
-    --success-foreground: 152 50% 4%;
+    --success: 142 71% 45%;
+    --success-foreground: 144 61% 10%;
 
     --warning: 42 90% 55%;
     --warning-foreground: 42 90% 10%;
 
-    --destructive: 0 72% 50%;
-    --destructive-foreground: 0 0% 100%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
 
-    --border: 240 10% 15%;
-    --input: 240 10% 15%;
-    --ring: 260 85% 72%;
+    --border: 222 47% 12%;
+    --input: 222 47% 12%;
+    --ring: 199 89% 48%;
 
     --radius: 1.5rem;
 
-    /* ════ NEON GRADIENTS ════ */
-    --gradient-primary: linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%);
-    --gradient-accent: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
+    /* ════ NEON GRADIENTS (CYAN TO BLUE) ════ */
+    --gradient-primary: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%);
+    --gradient-accent: linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%);
 
     /* ════ 3D DEPTH SHADOWS (STATIC) ════ */
-    --shadow-3d: 0 20px 50px -12px rgba(0, 0, 0, 0.9), inset 0 1px 1px rgba(255, 255, 255, 0.1);
-    --shadow-3d-active: 0 10px 20px -5px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.15);
+    --shadow-3d: 0 20px 50px -12px rgba(0, 0, 0, 0.95), inset 0 1px 1px rgba(255, 255, 255, 0.05);
+    --shadow-3d-active: 0 10px 20px -5px rgba(0, 0, 0, 0.7), inset 0 1px 1px rgba(255, 255, 255, 0.08);
 
     /* Sidebar Dark */
-    --sidebar-background: 240 10% 5%;
-    --sidebar-foreground: 240 5% 80%;
-    --sidebar-primary: 260 85% 72%;
-    --sidebar-primary-foreground: 240 10% 4%;
-    --sidebar-accent: 240 10% 12%;
-    --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 240 10% 15%;
-    --sidebar-ring: 260 85% 72%;
+    --sidebar-background: 222 47% 4%;
+    --sidebar-foreground: 215 20.2% 75.1%;
+    --sidebar-primary: 199 89% 48%;
+    --sidebar-primary-foreground: 222 47% 3%;
+    --sidebar-accent: 222 47% 10%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 222 47% 12%;
+    --sidebar-ring: 199 89% 48%;
   }
 }
 
@@ -103,8 +102,8 @@ html {
     text-rendering: optimizeSpeed;
     font-size: 0.95rem;
     background-image:
-      radial-gradient(at 0% 0%, hsla(260, 85%, 72%, 0.1) 0px, transparent 50%),
-      radial-gradient(at 100% 100%, hsla(240, 10%, 15%, 0.2) 0px, transparent 50%);
+      radial-gradient(at 0% 0%, hsla(199, 89%, 48%, 0.08) 0px, transparent 40%),
+      radial-gradient(at 100% 100%, hsla(222, 47%, 10%, 0.4) 0px, transparent 60%);
     background-attachment: fixed;
   }
 
@@ -144,7 +143,7 @@ html {
   }
 
   ::selection {
-    background: rgba(167, 139, 250, 0.4);
+    background: rgba(6, 182, 212, 0.4);
     color: white;
   }
 }
@@ -176,7 +175,7 @@ html {
   .gradient-text {
     @apply bg-clip-text text-transparent font-black;
     background-image: var(--gradient-primary);
-    filter: drop-shadow(0 0 5px rgba(167, 139, 250, 0.2));
+    filter: drop-shadow(0 0 8px rgba(6, 182, 212, 0.3));
   }
 
   /* ════ STATIC 3D BUTTONS ════ */
@@ -185,8 +184,8 @@ html {
     background: var(--gradient-primary);
     color: var(--primary-foreground);
     box-shadow:
-      0 10px 0px 0px #5b21b6,
-      0 15px 30px -5px rgba(0, 0, 0, 0.5),
+      0 8px 0px 0px #1d4ed8,
+      0 15px 30px -5px rgba(0, 0, 0, 0.6),
       inset 0 1px 2px rgba(255, 255, 255, 0.4);
     transform: translateY(-5px);
   }
@@ -194,7 +193,7 @@ html {
   .btn-3d:active {
     transform: translateY(-2px);
     box-shadow:
-      0 5px 0px 0px #5b21b6,
+      0 4px 0px 0px #1d4ed8,
       0 10px 20px -5px rgba(0, 0, 0, 0.5);
   }
 
@@ -212,8 +211,8 @@ html {
   }
 
   .nav-link-active {
-    @apply text-white font-black bg-primary/20 border border-primary/30;
-    box-shadow: 0 0 20px -5px rgba(167, 139, 250, 0.3);
+    @apply text-white font-black bg-primary/10 border border-primary/20;
+    box-shadow: 0 0 20px -5px rgba(6, 182, 212, 0.3);
   }
 
   /* ════ INPUTS ════ */
@@ -227,14 +226,14 @@ html {
   }
 
   .glow-neon {
-    box-shadow: 0 0 25px rgba(167, 139, 250, 0.3);
+    box-shadow: 0 0 25px rgba(6, 182, 212, 0.4);
   }
 }
 
 @layer utilities {
   .scrollbar-thin {
     scrollbar-width: thin;
-    scrollbar-color: rgba(167, 139, 250, 0.2) transparent;
+    scrollbar-color: rgba(6, 182, 212, 0.2) transparent;
   }
 
   .scrollbar-thin::-webkit-scrollbar {
@@ -242,7 +241,7 @@ html {
   }
 
   .scrollbar-thin::-webkit-scrollbar-thumb {
-    background: rgba(167, 139, 250, 0.3);
+    background: rgba(6, 182, 212, 0.3);
     border-radius: 10px;
   }
 }
