@@ -414,12 +414,8 @@ serve(async (req) => {
     // ============================================
     console.log(`\n--- Processing Engagement Order Runs ---`)
     
-    // Buffer for high-load triggers (10s)
-    const nowWithBuffer = new Date(Date.now() + 10000).toISOString()
-    console.log(`Fetching runs due before: ${nowWithBuffer}`)
-    
     // Get pending runs for engagement order items that are due
-    // Only fetch runs whose scheduled_at <= nowWithBuffer (respects time-based scheduling)
+    // Only fetch runs whose scheduled_at <= now (respects time-based scheduling)
     // After resume from pause, only future-scheduled runs remain pending
     // IMPORTANT: Only fetch 'pending' status - cancelled runs are NEVER processed
     const { data: pendingEngagementRuns, error: engagementRunsError } = await supabase
@@ -434,13 +430,9 @@ serve(async (req) => {
       `)
       .eq('status', 'pending')
       .not('engagement_order_item_id', 'is', null)
-      .lte('scheduled_at', nowWithBuffer)
+      .lte('scheduled_at', now)
       .order('run_number', { ascending: true })
       .limit(50)
-
-    if (pendingEngagementRuns && pendingEngagementRuns.length > 0) {
-      console.log(`✅ Found ${pendingEngagementRuns.length} pending runs due`)
-    }
 
     if (engagementRunsError) {
       console.error('Error fetching engagement runs:', engagementRunsError)
@@ -548,29 +540,6 @@ serve(async (req) => {
         }).eq('id', run.id)
         failed++
         continue
-      }
-
-      // 👁️ VIEWS FIRST LOGIC: Non-view engagement (likes/comments/etc) must wait for views
-      const viewTypes = ['views', 'impressions', 'reach', 'plays', 'watch_hours']
-      const currentType = item.engagement_type?.toLowerCase()
-      const isViewAction = viewTypes.includes(currentType)
-      
-      if (!isViewAction && item.engagement_order_id) {
-        // Find if there are any View items for the same engagement_order that are still pending/due
-        const { data: pendingViews } = await supabase
-          .from('organic_run_schedule')
-          .select('id, status, engagement_order_items!inner(engagement_order_id, engagement_type)')
-          .eq('status', 'pending')
-          .lte('scheduled_at', nowWithBuffer)
-          .eq('engagement_order_items.engagement_order_id', item.engagement_order_id)
-          .in('engagement_order_items.engagement_type', viewTypes)
-          .limit(1)
-
-        if (pendingViews && pendingViews.length > 0) {
-          console.log(`⏳ Run #${run.run_number} (${currentType}) waiting: views for same order are still pending/due`)
-          skipped++
-          continue
-        }
       }
 
       // SKIP PAUSED/CANCELLED ORDERS: Check if parent engagement order OR item is paused/cancelled

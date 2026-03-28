@@ -652,11 +652,11 @@ serve(async (req) => {
         const PLATFORM_STAGGER: Record<string, Record<string, { base: number; variance: number }>> = {
           instagram: {
             views: { base: 0, variance: 0 },
-            likes: { base: 25, variance: 45 },      // Increased base (25-70 min) after views
-            comments: { base: 45, variance: 60 },    // 45-105 min after views
-            saves: { base: 90, variance: 90 },       // 90-180 min after views
-            shares: { base: 120, variance: 120 },    // 2-4 hours after views
-            followers: { base: 180, variance: 180 }, // 3-6 hours after views
+            likes: { base: 45, variance: 60 },      // Increased base (45-105 min) after views
+            comments: { base: 75, variance: 90 },    // 75-165 min after views
+            saves: { base: 120, variance: 120 },    // 120-240 min after views
+            shares: { base: 180, variance: 180 },    // 3-6 hours after views
+            followers: { base: 240, variance: 240 }, // 4-8 hours after views
           },
           tiktok: {
             views: { base: 0, variance: 0 },
@@ -883,8 +883,8 @@ serve(async (req) => {
 
           let initialDelayMinutes: number
           if (isViewType && !viewsFirstRunScheduled) {
-            // Primary view type ALWAYS starts first with 2-15 min delay
-            initialDelayMinutes = aiOrganicEnabled ? 2 + Math.random() * 13 : 5 + Math.random() * 10
+            // Primary view type ALWAYS starts first with 5-20 min delay (increased from 2-15)
+            initialDelayMinutes = aiOrganicEnabled ? 5 + Math.random() * 15 : 8 + Math.random() * 12
             viewsStartTime = new Date(startTime.getTime() + initialDelayMinutes * 60 * 1000)
             viewsFirstRunScheduled = true
             currentTime = new Date(viewsStartTime.getTime())
@@ -1096,6 +1096,12 @@ serve(async (req) => {
               }
               if (runsLeft > 3 && qty > remaining * 0.4) {
                 qty = Math.round(remaining * (0.15 + Math.random() * 0.25))
+                qty = Math.max(providerMin, qty)
+              }
+              
+              // STRICT MULTI-RUN CAPPING: If multiple runs remain, never take more than 65% in one run
+              if (runsLeft > 1 && qty > remaining * 0.65) {
+                qty = Math.round(remaining * (0.35 + Math.random() * 0.25))
                 qty = Math.max(providerMin, qty)
               }
             }
