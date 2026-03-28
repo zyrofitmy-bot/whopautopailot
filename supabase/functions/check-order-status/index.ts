@@ -90,8 +90,8 @@ Deno.serve(async (req) => {
       // 3) completed runs whose provider_status is NOT terminal — keep syncing delivery data
       .or(
         'status.eq.started,' +
-        'and(status.eq.completed,error_message.ilike.%Auto-completed%,provider_status.in.(Pending,In progress,Processing)),' +
-        'and(status.eq.completed,provider_status.not.in.(Completed,Complete,Partial,Refunded,Canceled,Cancelled,Error,Failed))'
+        'and(status.eq.completed,error_message.ilike.%Auto-completed%,provider_status.in.(Pending,In progress,Processing,Inprogress,Awaiting)),' +
+        'and(status.eq.completed,provider_status.not.in.(Completed,Complete,Partial,Refunded,Canceled,Cancelled,Error,Failed,Success,Refund,Canscelled))'
       )
       .not('provider_order_id', 'is', null)
       .not('engagement_order_item_id', 'is', null)
@@ -237,7 +237,7 @@ Deno.serve(async (req) => {
           last_status_check: new Date().toISOString()
         }
 
-        if (providerStatus === 'completed' || providerStatus === 'complete') {
+        if (providerStatus === 'completed' || providerStatus === 'complete' || providerStatus === 'success') {
           await supabase.from('organic_run_schedule').update({
             ...trackingUpdate,
             status: 'completed',
@@ -278,7 +278,7 @@ Deno.serve(async (req) => {
           })
           await updateEngagementOrderStatus(supabase, run.engagement_order_item?.engagement_order_id, run.engagement_order_item?.id)
 
-        } else if (providerStatus === 'cancelled' || providerStatus === 'canceled' || providerStatus === 'refunded') {
+        } else if (providerStatus === 'cancelled' || providerStatus === 'canceled' || providerStatus === 'refunded' || providerStatus === 'refund' || providerStatus === 'canscelled') {
           // Check if we can retry this run - AGGRESSIVE retries (up to 15)
           const currentRetryCount = run.retry_count || 0
           if (currentRetryCount < 15) {
@@ -366,8 +366,8 @@ Deno.serve(async (req) => {
       // Check started + auto-completed + completed but non-terminal at provider
       .or(
         'status.eq.started,' +
-        'and(status.eq.completed,error_message.ilike.%Auto-completed%,provider_status.in.(Pending,In progress,Processing)),' +
-        'and(status.eq.completed,provider_status.not.in.(Completed,Complete,Partial,Refunded,Canceled,Cancelled,Error,Failed))'
+        'and(status.eq.completed,error_message.ilike.%Auto-completed%,provider_status.in.(Pending,In progress,Processing,Inprogress,Awaiting)),' +
+        'and(status.eq.completed,provider_status.not.in.(Completed,Complete,Partial,Refunded,Canceled,Cancelled,Error,Failed,Success,Refund,Canscelled))'
       )
       .not('provider_order_id', 'is', null)
       .not('order_id', 'is', null)
@@ -475,7 +475,7 @@ Deno.serve(async (req) => {
             last_status_check: new Date().toISOString()
           }
 
-          if (providerStatus === 'completed' || providerStatus === 'complete') {
+          if (providerStatus === 'completed' || providerStatus === 'complete' || providerStatus === 'success') {
             await supabase.from('organic_run_schedule').update({
               ...trackingUpdate,
               status: 'completed',
@@ -497,7 +497,7 @@ Deno.serve(async (req) => {
             completed++
             await updateLegacyOrderStatus(supabase, run.order_id)
 
-          } else if (providerStatus === 'cancelled' || providerStatus === 'canceled') {
+          } else if (providerStatus === 'cancelled' || providerStatus === 'canceled' || providerStatus === 'refunded' || providerStatus === 'refund' || providerStatus === 'canscelled') {
             await supabase.from('organic_run_schedule').update({
               ...trackingUpdate,
               status: 'failed',

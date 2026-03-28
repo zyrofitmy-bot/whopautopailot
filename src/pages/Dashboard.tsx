@@ -74,12 +74,16 @@ export default function Dashboard() {
       const { data: orders } = await supabase
         .from('orders')
         .select('status, price')
-        .eq('user_id', user?.id);
+        .eq('user_id', user?.id)
+        .limit(1000);
+
 
       const { data: engOrders } = await supabase
         .from('engagement_orders')
         .select('status, total_price')
-        .eq('user_id', user?.id);
+        .eq('user_id', user?.id)
+        .limit(1000);
+
 
       const totalOrders = (orders?.length || 0) + (engOrders?.length || 0);
       const completedOrders = (orders?.filter(o => o.status === 'completed').length || 0) +

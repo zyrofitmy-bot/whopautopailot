@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useGlobalMarkup } from './useGlobalMarkup';
@@ -61,10 +62,12 @@ export function useServices() {
   });
 
   // Apply dynamic markup from admin panel settings to raw provider costs
-  const services = rawServices?.map(s => ({
-    ...s,
-    price: applyMarkup(s.price),
-  }));
+  const services = useMemo(() => {
+    return rawServices?.map(s => ({
+      ...s,
+      price: applyMarkup(s.price),
+    }));
+  }, [rawServices, applyMarkup]);
 
   return { 
     services, 

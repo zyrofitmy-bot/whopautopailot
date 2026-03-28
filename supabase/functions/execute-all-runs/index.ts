@@ -26,6 +26,11 @@ const TEMPORARY_ERRORS = [
   'timeout',
   'temporarily',
   'too many requests',
+  'already has an order',
+  'order in progress',
+  'link currently active',
+  'processing previous order',
+  'wait for completion',
 ]
 
 // Errors that should try NEXT account (the key might work on another account)
@@ -56,6 +61,10 @@ const TRY_NEXT_PROVIDER_ERRORS = [
   'invalid service',
   'service unavailable',
   'service is not available',
+  'disabled',
+  'not work',
+  'maintenance',
+  'down',
 ]
 
 // Interface for provider account
@@ -312,6 +321,7 @@ async function checkProviderOrderStatusWithRetries(params: {
 // WAIT MODE: Only processes next run when previous run is complete
 // ROUND-ROBIN: Rotates between provider accounts to avoid "active order" conflicts
 serve(async (req) => {
+  const startTime = Date.now()
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
@@ -381,6 +391,12 @@ serve(async (req) => {
     let retried = 0
     const results: any[] = []
 
+    // Pre-fetch all ACTIVE runs (status: 'started') for conflict detection
+    const { data: activeRuns } = await supabase
+      .from('organic_run_schedule')
+      .select('*, engagement_order_item:engagement_order_items(engagement_type, service_id, engagement_order:engagement_orders(link))')
+      .eq('status', 'started')
+
     // ============================================
     // STEP 0: GLOBAL CLEANUP - Auto-complete stuck "started" runs (10+ min old)
     // This prevents provider accounts from being permanently blocked
@@ -401,6 +417,7 @@ serve(async (req) => {
         await supabase.from('organic_run_schedule').update({
           status: 'completed',
           completed_at: new Date().toISOString(),
+          provider_status: 'Stale', // Set terminal status to free the account
           error_message: `Auto-completed after ${ageMin}min (global cleanup, status: ${stuck.provider_status || 'unknown'})`,
         }).eq('id', stuck.id)
       }
@@ -414,8 +431,9 @@ serve(async (req) => {
     // ============================================
     console.log(`\n--- Processing Engagement Order Runs ---`)
     
-    // Buffer for high-load triggers (10s)
-    const nowWithBuffer = new Date(Date.now() + 10000).toISOString()
+    // Buffer for high-load triggers (Reduced to 2s to prevent race where new future runs are picked up)
+    const nowWithBuffer = new Date(Date.now() + 2000).toISOString()
+
     console.log(`Fetching runs due before: ${nowWithBuffer}`)
     
     // Get pending runs for engagement order items that are due
@@ -462,7 +480,7 @@ serve(async (req) => {
     // Only process ONE run per item at a time to ensure strict priority-based delivery
     // and avoid "active order" conflicts on the same link across different providers.
     const itemRunCount = new Map<string, number>()
-    const MAX_CONCURRENT_PER_ITEM = 1 // Strict sequential delivery - one run per item per cycle
+    const MAX_CONCURRENT_PER_ITEM = 2 // Increased to 2 for better throughput while maintaining sequence
     
     const deduplicatedRuns = activeEngagementRuns.filter(run => {
       const itemId = run.engagement_order_item_id
@@ -569,6 +587,10 @@ serve(async (req) => {
         if (pendingViews && pendingViews.length > 0) {
           console.log(`⏳ Run #${run.run_number} (${currentType}) waiting: views for same order are still pending/due`)
           skipped++
+          results.push({ 
+            run_id: run.id, run_number: run.run_number, type: item.engagement_type,
+            skipped: true, reason: `Waiting for ${pendingViews.length} pending views for same order`
+          })
           continue
         }
       }
@@ -700,25 +722,28 @@ serve(async (req) => {
       // Example: Panel A has TikTok views running → Instagram views CAN go to Panel A ✅
       //          Panel A has TikTok views running → more TikTok views on same link CANNOT go to Panel A ❌
       
-      const sameLink = orderLink.toLowerCase().replace(/\/$/, '')
+      const sameLink = (item.engagement_order?.link || '').toLowerCase().replace(/\/$/, '')
       const currentServiceId = item.service?.id // The actual service UUID
       
-      // 1. Check STARTED runs for same link + same service_id
-      const { data: startedRuns } = await supabase
-        .from('organic_run_schedule')
-        .select(`
-          id, run_number, provider_status, started_at, provider_account_id, provider_order_id,
-          engagement_order_item:engagement_order_items(
-            engagement_type,
-            service_id,
-            engagement_order:engagement_orders(link)
-          )
-        `)
-        .eq('status', 'started')
-        .not('provider_account_id', 'is', null)
+      // 2. DUPLICATE LINK GUARD: Ensure no other run for this SAME link is active
+      const isLinkActive = (activeRuns || []).some((ar: any) => {
+        const arLink = (ar.engagement_order_item?.engagement_order?.link || '').toLowerCase().trim().replace(/\/$/, '')
+        return arLink === sameLink
+      })
+
+      if (isLinkActive) {
+        console.log(`[${executionId}] ⏭️ Another run is already active for link ${sameLink} — skipping`)
+        skipped++
+        results.push({ 
+          run_id: run.id, run_number: run.run_number, type: item.engagement_type,
+          skipped: true, reason: `Link ${sameLink} already active` 
+        })
+        continue
+      }
       
-      // Filter to runs matching SAME link AND SAME service_id only
-      const startedRunsForLinkAndType = (startedRuns || []).filter(r => {
+      // 1. Check STARTED runs for same link + same service_id
+      // USE PRE-FETCHED Global activeRuns for better performance
+      const startedRunsForLinkAndType = (activeRuns || []).filter((r: any) => {
         const runLink = (r.engagement_order_item?.engagement_order?.link || '').toLowerCase().replace(/\/$/, '')
         const runServiceId = r.engagement_order_item?.service_id || ''
         return runLink === sameLink && runServiceId === currentServiceId
@@ -727,7 +752,7 @@ serve(async (req) => {
       // 2. Check COMPLETED runs where provider_status is STILL ACTIVE (non-terminal)
       // LIVE CHECK: For each such run, verify with provider API if still active
       // If provider says terminal, update our DB and FREE the account
-      const nonTerminalStatuses = ['Pending', 'In progress', 'Processing', 'Partial']
+      const nonTerminalStatuses = ['Pending', 'In progress', 'Processing', 'Partial', 'Inprogress', 'Awaiting']
       const { data: providerActiveRuns } = await supabase
         .from('organic_run_schedule')
         .select(`
@@ -774,7 +799,7 @@ serve(async (req) => {
             attemptDelayMs: 0,
           })
           
-          const terminalStatuses = ['Completed', 'Partial', 'Refunded', 'Canceled', 'Cancelled', 'Error', 'Failed']
+          const terminalStatuses = ['Completed', 'Complete', 'Partial', 'Refunded', 'Canceled', 'Cancelled', 'Error', 'Failed', 'Success', 'Refund', 'Canscelled']
           
           if (liveResult.ok) {
             const liveStatus = liveResult.data?.status || ''
@@ -802,9 +827,48 @@ serve(async (req) => {
         }
       }
       
+      // 3. NEW: Check for RECENTLY FAILED runs with "Active Order" errors (Cooldown Logic)
+      // If Provider A failed with "Active order" for THIS link in the last 15 mins,
+      // it is highly likely the panel is processing that specific link.
+      // We block it briefly for THAT link only to force failover to other providers.
+      const fifteenMinAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString()
+      const { data: recentlyBusyRuns, error: busyRunsError } = await supabase
+        .from('organic_run_schedule')
+        .select(`
+          provider_account_id, 
+          error_message,
+          engagement_order_item:engagement_order_items(
+            engagement_order:engagement_orders(link)
+          )
+        `)
+        .eq('status', 'pending')
+        .gte('last_status_check', fifteenMinAgo)
+
+      if (!busyRunsError && recentlyBusyRuns && recentlyBusyRuns.length > 0) {
+        for (const rbr of recentlyBusyRuns) {
+          if (!rbr.provider_account_id || busyAccountIds.includes(rbr.provider_account_id)) continue
+          
+          const err = (rbr.error_message || '').toLowerCase()
+          const isBusyError = err.includes('active order') || 
+                              err.includes('already has an order') || 
+                              err.includes('wait until') ||
+                              err.includes('processing previous') ||
+                              err.includes('in progress')
+          
+          if (isBusyError) {
+            // ONLY block if it's the SAME link
+            const rbrLink = (rbr.engagement_order_item?.engagement_order?.link || '').toLowerCase().replace(/\/$/, '')
+            if (rbrLink === sameLink) {
+              console.log(`⏳ Account ${rbr.provider_account_id} recently reported busy for link ${sameLink} — adding to cooldown list`)
+              busyAccountIds.push(rbr.provider_account_id)
+            }
+          }
+        }
+      }
+      
       if (startedRunsForLinkAndType && startedRunsForLinkAndType.length > 0) {
         for (const stuckRun of startedRunsForLinkAndType) {
-          const terminalStatuses = ['Completed', 'Partial', 'Refunded', 'Canceled', 'Cancelled', 'Error', 'Failed']
+          const terminalStatuses = ['Completed', 'Complete', 'Partial', 'Refunded', 'Canceled', 'Cancelled', 'Error', 'Failed', 'Success', 'Refund', 'Canscelled']
           const isTerminal = stuckRun.provider_status && terminalStatuses.includes(stuckRun.provider_status)
           
           const startedAt = new Date(stuckRun.started_at || 0)
@@ -926,30 +990,38 @@ serve(async (req) => {
         })
       }
       
-      if (accountsToTry.length === 0) {
-        // Check if accounts EXIST but are all busy vs truly not configured
-        const { data: totalMappings } = await supabase
-          .from('service_provider_mapping')
-          .select('id')
-          .eq('service_id', item.service.id)
-          .eq('is_active', true)
-          .limit(1)
-        
-        if (totalMappings && totalMappings.length > 0) {
-          // Accounts exist but all busy — revert to pending for retry next cycle
-          console.log(`⏳ All provider accounts busy for ${item.engagement_type} — keeping as pending for retry`)
-          skipped++
-        } else {
-          // Truly no accounts configured — fail permanently
-          console.error(`No provider accounts configured for service ${item.service.id}`)
-          await supabase.from('organic_run_schedule').update({
-            status: 'failed',
-            error_message: 'No provider accounts configured',
-          }).eq('id', run.id)
-          failed++
+        if (accountsToTry.length === 0) {
+          // Check if accounts EXIST but are all busy vs truly not configured
+          const { data: totalMappings } = await supabase
+            .from('service_provider_mapping')
+            .select('id')
+            .eq('service_id', item.service.id)
+            .eq('is_active', true)
+            .limit(1)
+          
+          if (totalMappings && totalMappings.length > 0) {
+            // Accounts exist but all busy — revert to pending for retry next cycle
+            console.log(`⏳ All provider accounts busy for link ${sameLink} (${item.engagement_type}) — keeping as pending for retry`)
+            skipped++
+            results.push({ 
+              run_id: run.id, run_number: run.run_number, type: item.engagement_type,
+              success: false, skipped: true, reason: `All providers busy for link ${sameLink} (${item.engagement_type})`
+            })
+          } else {
+            // Truly no accounts configured — fail permanently
+            console.error(`No provider accounts configured for service ${item.service.id}`)
+            await supabase.from('organic_run_schedule').update({
+              status: 'failed',
+              error_message: 'No provider accounts configured',
+            }).eq('id', run.id)
+            failed++
+            results.push({ 
+              run_id: run.id, run_number: run.run_number, type: item.engagement_type,
+              success: false, error: 'No provider accounts configured'
+            })
+          }
+          continue
         }
-        continue
-      }
       
       console.log(`🔄 PRIORITY FAILOVER: Will try ${accountsToTry.length} accounts in order: ${accountsToTry.map((a, i) => `${i+1}. ${a.account.name}`).join(' → ')}`)
 
@@ -1392,16 +1464,11 @@ serve(async (req) => {
         continue
       }
 
-      // WAIT MODE: Check for started runs (with stuck run handling - 2 min threshold for fast processing)
-      const { data: startedRuns } = await supabase
-        .from('organic_run_schedule')
-        .select('id, provider_status, started_at, run_number')
-        .eq('order_id', order.id)
-        .eq('status', 'started')
-        .limit(1)
+      // WAIT MODE: Check for started runs globally
+      const startedRunsForOrder = (activeRuns || []).filter((r: any) => r.order_id === order.id)
 
-      if (startedRuns && startedRuns.length > 0) {
-        const stuckRun = startedRuns[0]
+      if (startedRunsForOrder && startedRunsForOrder.length > 0) {
+        const stuckRun = startedRunsForOrder[0]
         const terminalStatuses = ['Completed', 'Partial', 'Refunded', 'Canceled', 'Cancelled', 'Error', 'Failed']
         const isTerminal = stuckRun.provider_status && terminalStatuses.includes(stuckRun.provider_status)
         
@@ -1600,6 +1667,10 @@ serve(async (req) => {
       failed,
       retried,
       results,
+      debug: {
+        active_links: (activeRuns || []).map((ar: any) => (ar.engagement_order_item?.engagement_order?.link || '').toLowerCase().trim().replace(/\/$/, '')),
+        execution_time_ms: Date.now() - startTime
+      }
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })

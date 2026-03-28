@@ -13,7 +13,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrency } from '@/hooks/useCurrency';
 
-const RAZORPAY_PAGE_URL = "https://razorpay.me/@whopautopilot";
+const RAZORPAY_PAGE_URL = "https://razorpay.me/@organicsmm";
 const TELEGRAM_SUPPORT = "https://t.me/HenryMiller08";
 
 const QUICK_AMOUNTS = [100, 250, 500, 1000, 2500, 5000];
