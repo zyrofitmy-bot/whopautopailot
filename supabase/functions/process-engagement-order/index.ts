@@ -44,28 +44,28 @@ interface OrganicServiceConfig {
 // STRICT batch limits - realistic human-like quantities per run
 // These are HARD CAPS - no run should ever exceed these values
 const MAX_BATCH_CAPS: Record<string, number> = {
-  views: 350,           // Real viral gets ~100-300 views in bursts, max 350
-  likes: 80,            // Humans like slowly, max 80 at once  
-  comments: 5,          // Comments are RARE - max 5 per burst
-  saves: 40,            // Saves happen slowly
-  shares: 50,           // Shares are rare actions
-  followers: 15,        // Followers trickle in slowly
-  subscribers: 10,      // Subscribers are very slow
-  retweets: 60,         // Retweets in small waves
-  reposts: 55,          // Reposts similar to retweets
+  views: 200,           // Real viral gets ~100-200 views in bursts
+  likes: 35,            // Humans like slowly, max 35 at once  
+  comments: 3,          // Comments are RARE - max 3 per burst
+  saves: 20,            // Saves happen slowly
+  shares: 25,           // Shares are rare actions
+  followers: 8,         // Followers trickle in slowly
+  subscribers: 5,       // Subscribers are very slow
+  retweets: 35,         // Retweets in small waves
+  reposts: 30,          // Reposts similar to retweets
   watch_hours: 1,       // Watch hours accumulate very slowly
-  story_views: 300,     // Story views can be slightly faster
-  impressions: 400,     // Impressions slightly higher
-  reach: 350,           // Reach similar to views
-  profile_visits: 25,   // Profile visits are rare
-  mentions: 5,          // Mentions very rare
-  quotes: 8,            // Quotes rare
-  bookmarks: 40,        // Bookmarks slow
-  favorites: 70,        // Favorites moderate
-  plays: 250,           // Plays moderate
-  listens: 200,         // Listens moderate
-  downloads: 10,        // Downloads very slow
-  generic: 100,         // Conservative for unknown
+  story_views: 200,     // Story views moderate
+  impressions: 300,     // Impressions moderate
+  reach: 250,           // Reach moderate
+  profile_visits: 15,   // Profile visits are rare
+  mentions: 3,          // Mentions very rare
+  quotes: 4,            // Quotes rare
+  bookmarks: 25,        // Bookmarks slow
+  favorites: 35,        // Favorites moderate
+  plays: 200,           // Plays moderate
+  listens: 150,         // Listens moderate
+  downloads: 5,         // Downloads very slow
+  generic: 50,          // Conservative for unknown
 }
 
 // LONG intervals - humans don't engage every few minutes
@@ -103,11 +103,11 @@ const SERVICE_CONFIGS: Record<ServiceCategory, OrganicServiceConfig> = {
     minRunsPerOrder: 25, maxRunsPerOrder: 300, targetHumanScore: [85, 99], defaultMinQty: 100
   },
   likes: {
-    baseIntervalMinutes: 65, intervalVariance: 35, quantityVariancePercent: 60,
-    spikeChance: 0.06, spikeMagnitude: [1.2, 1.5], dipChance: 0.25, dipMagnitude: [0.45, 0.75],
-    burstChance: 0.04, pauseChance: 0.30, patternBreakerChance: 0.35,
-    peakHourBoost: 1.25, nightReduction: 0.20, runsPerThousand: 100, // Increased runs per 1k
-    minRunsPerOrder: 5, maxRunsPerOrder: 200, targetHumanScore: [88, 99], defaultMinQty: 10
+    baseIntervalMinutes: 85, intervalVariance: 45, quantityVariancePercent: 70,
+    spikeChance: 0.04, spikeMagnitude: [1.1, 1.35], dipChance: 0.30, dipMagnitude: [0.35, 0.65],
+    burstChance: 0.02, pauseChance: 0.35, patternBreakerChance: 0.40,
+    peakHourBoost: 1.15, nightReduction: 0.15, runsPerThousand: 180, 
+    minRunsPerOrder: 10, maxRunsPerOrder: 200, targetHumanScore: [88, 99], defaultMinQty: 10
   },
   comments: {
     baseIntervalMinutes: 150, intervalVariance: 80, quantityVariancePercent: 75,
@@ -883,28 +883,33 @@ serve(async (req) => {
 
           let initialDelayMinutes: number
           if (isViewType && !viewsFirstRunScheduled) {
-            // Primary view type ALWAYS starts first with 5-20 min delay (increased from 2-15)
-            initialDelayMinutes = aiOrganicEnabled ? 5 + Math.random() * 15 : 8 + Math.random() * 12
+            // Primary view type ALWAYS starts first with 10-25 min delay (increased from 5-20 for safety)
+            initialDelayMinutes = aiOrganicEnabled ? 10 + Math.random() * 15 : 12 + Math.random() * 10
             viewsStartTime = new Date(startTime.getTime() + initialDelayMinutes * 60 * 1000)
             viewsFirstRunScheduled = true
             currentTime = new Date(viewsStartTime.getTime())
             console.log(`  📍 ${engType} (primary) starts at +${Math.round(initialDelayMinutes)}min`)
           } else if (viewsStartTime) {
+
             // Stagger after views using PLATFORM-SPECIFIC delays
+            // Increased base delay to ensure views have time to register before likes/shares start
             initialDelayMinutes = aiOrganicEnabled
-              ? staggerConfig.base + Math.random() * staggerConfig.variance
-              : staggerConfig.base + Math.random() * (staggerConfig.variance * 0.5)
+              ? (staggerConfig.base + 20) + Math.random() * (staggerConfig.variance + 15)
+              : (staggerConfig.base + 15) + Math.random() * (staggerConfig.variance * 0.7)
             currentTime = new Date(viewsStartTime.getTime() + initialDelayMinutes * 60 * 1000)
             console.log(`  📍 ${engType} starts at +${Math.round(initialDelayMinutes)}min after views (${platform} pattern)`)
+
           } else {
             // No views in this order - use stagger config with absolute offset
+            // Increased priority-based delay to prevent "instant" scheduling
             const priority = platformPriorities[engType] ?? 3
             initialDelayMinutes = aiOrganicEnabled
-              ? staggerConfig.base + (priority * 15) + Math.random() * staggerConfig.variance
-              : staggerConfig.base + (priority * 10) + Math.random() * (staggerConfig.variance * 0.5)
+              ? (staggerConfig.base + 20) + (priority * 25) + Math.random() * staggerConfig.variance
+              : (staggerConfig.base + 15) + (priority * 15) + Math.random() * (staggerConfig.variance * 0.5)
             currentTime = new Date(startTime.getTime() + initialDelayMinutes * 60 * 1000)
             console.log(`  📍 ${engType} starts at +${Math.round(initialDelayMinutes)}min (no views, ${platform} pattern)`)
           }
+
 
           // Generate runs
           while (remaining > 0 && (!timeLimitApplied || runNumber <= targetRuns)) {
@@ -925,7 +930,15 @@ serve(async (req) => {
 
             const jitterMinutes = timeLimitApplied ? 1 : 5
             const jitterMs = (Math.random() * (jitterMinutes * 2) - jitterMinutes) * 60 * 1000
-            const scheduledAt = new Date(currentTime.getTime() + jitterMs)
+            let scheduledAt = new Date(currentTime.getTime() + jitterMs)
+
+            // CRITICAL FIX: Ensure jitter never moves the run to "now" or before its intended stagger
+            // First runs of any type must be at least 5 minutes from order placement
+            const absoluteMinTime = new Date(startTime.getTime() + 5 * 60 * 1000)
+            if (scheduledAt < absoluteMinTime) {
+              scheduledAt = absoluteMinTime
+            }
+
 
             const istOffset = 5.5 * 60 * 60 * 1000
             const istTime = new Date(scheduledAt.getTime() + istOffset)
@@ -954,9 +967,9 @@ serve(async (req) => {
             const avgForRemaining = Math.ceil(remaining / runsLeft)
             const isLastRun = runNumber === targetRuns || remaining <= maxBatchCap
 
-            // KEY INSIGHT: If providerMin >= 60% of avg batch, dips are impossible
+            // KEY INSIGHT: If providerMin >= 80% of avg batch, dips are impossible
             // All "dip" quantities get clamped to providerMin = identical runs = BOTTING
-            const providerMinIsHigh = providerMin >= avgForRemaining * 0.6
+            const providerMinIsHigh = providerMin >= avgForRemaining * 0.8 && providerMin > 40
 
             if (isLastRun && remaining <= maxBatchCap) {
               qty = remaining
@@ -974,9 +987,9 @@ serve(async (req) => {
                 continue
               }
 
-              // CONTINUOUS random quantity between providerMin and maxBatchCap
-              // No tiers, no multipliers - pure uniform random
-              const range = maxBatchCap - providerMin
+              // CONTINUOUS random quantity capped at a multiplier of avgBatch for organic feel
+              const dynamicCap = Math.min(maxBatchCap, Math.round(avgForRemaining * 1.5))
+              const range = Math.max(1, dynamicCap - providerMin)
               qty = providerMin + Math.floor(Math.random() * range)
               baseQty = qty
 
@@ -1099,9 +1112,10 @@ serve(async (req) => {
                 qty = Math.max(providerMin, qty)
               }
               
-              // STRICT MULTI-RUN CAPPING: If multiple runs remain, never take more than 65% in one run
-              if (runsLeft > 1 && qty > remaining * 0.65) {
-                qty = Math.round(remaining * (0.35 + Math.random() * 0.25))
+              // STRICT MULTI-RUN CAPPING: If multiple runs remain, never take more than 45% in one run (non-views)
+              const runCapPercent = isViewType ? 0.70 : 0.45
+              if (runsLeft > 1 && qty > remaining * runCapPercent) {
+                qty = Math.round(remaining * (runCapPercent - 0.2 + Math.random() * 0.2))
                 qty = Math.max(providerMin, qty)
               }
             }
