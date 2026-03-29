@@ -482,7 +482,10 @@ serve(async (req) => {
     // Only process ONE run per item at a time to ensure strict priority-based delivery
     // and avoid "active order" conflicts on the same link across different providers.
     const itemRunCount = new Map<string, number>()
-    const MAX_CONCURRENT_PER_ITEM = 2 // Increased to 2 for better throughput while maintaining sequence
+    const MAX_CONCURRENT_PER_ITEM = 1 // Reverted to 1 for strict sequence
+    
+    // Track what we start in THIS loop to prevent duplicates
+    const startedInThisExecution = new Set<string>()
     
     const deduplicatedRuns = activeEngagementRuns.filter(run => {
       const itemId = run.engagement_order_item_id
@@ -700,21 +703,27 @@ serve(async (req) => {
       const sameLink = (item.engagement_order?.link || '').toLowerCase().replace(/\/$/, '')
       const currentServiceId = item.service?.id
       
-      // RELAXED LINK GUARD:
+      const sameLinkNormalized = sameLink.toLowerCase().trim().replace(/\/$/, '')
+      const currentTypeNormalized = currentType.toLowerCase().trim()
+      const localExecutionKey = `${sameLinkNormalized}|${currentTypeNormalized}`
+
+      // RELAXED LINK GUARD + LOCAL TRACKING:
       // We only block this run if another run for the SAME LINK AND SAME ENGAGEMENT TYPE is active.
-      // This allows Views and Likes for the same link to run in parallel, which unblocks the queue significantly.
-      const isTypeActive = (activeRuns || []).some((ar: any) => {
+      // We check both GLOBAL active runs and LOCALLY started runs in this loop.
+      const isTypeActiveGlobal = (activeRuns || []).some((ar: any) => {
         const arLink = (ar.engagement_order_item?.engagement_order?.link || '').toLowerCase().trim().replace(/\/$/, '')
         const arType = ar.engagement_order_item?.engagement_type?.toLowerCase()
-        return arLink === sameLink && arType === currentType
+        return arLink === sameLinkNormalized && arType === currentTypeNormalized
       })
 
-      if (isTypeActive) {
-        console.log(`[${executionId}] ⏭️ Another ${currentType} run is already active for link ${sameLink} — skipping to avoid provider conflict`)
+      const isTypeActiveLocal = startedInThisExecution.has(localExecutionKey)
+
+      if (isTypeActiveGlobal || isTypeActiveLocal) {
+        console.log(`[${executionId}] ⏭️ Another ${currentType} run is already active for link ${sameLink} — skipping to ensure sequential delivery`)
         skipped++
         results.push({ 
           run_id: run.id, run_number: run.run_number, type: item.engagement_type,
-          skipped: true, reason: `${currentType} already active for this link` 
+          skipped: true, reason: `${currentType} already active (Global: ${isTypeActiveGlobal}, Local: ${isTypeActiveLocal})` 
         })
         continue
       }
@@ -727,83 +736,12 @@ serve(async (req) => {
         return runLink === sameLink && runServiceId === currentServiceId
       })
       
-      // 2. Check COMPLETED runs where provider_status is STILL ACTIVE (non-terminal)
-      // LIVE CHECK: For each such run, verify with provider API if still active
-      // If provider says terminal, update our DB and FREE the account
-      const nonTerminalStatuses = ['Pending', 'In progress', 'Processing', 'Partial', 'Inprogress', 'Awaiting']
-      const { data: providerActiveRuns } = await supabase
-        .from('organic_run_schedule')
-        .select(`
-          id, run_number, provider_account_id, provider_order_id, completed_at, provider_status,
-          engagement_order_item:engagement_order_items(
-            engagement_type,
-            service_id,
-            engagement_order:engagement_orders(link)
-          )
-        `)
-        .eq('status', 'completed')
-        .not('provider_account_id', 'is', null)
-        .not('provider_order_id', 'is', null)
-        .in('provider_status', nonTerminalStatuses)
-      
-      // Filter to same link + same service_id
-      const providerActiveForLinkAndType = (providerActiveRuns || []).filter(r => {
-        const runLink = (r.engagement_order_item?.engagement_order?.link || '').toLowerCase().replace(/\/$/, '')
-        const runServiceId = r.engagement_order_item?.service_id || ''
-        return runLink === sameLink && runServiceId === currentServiceId
-      })
-
-      // Track which provider accounts are busy for THIS service type on THIS link
+      // 2. PROVIDER STATUS CHECK: DISABLED
+      // Previously, this checked completed runs with non-terminal provider statuses
+      // and blocked accounts. This caused deadlocks because stale "In progress" statuses
+      // from previous runs would permanently block accounts. Once our system marks a run
+      // as 'completed', we trust that and don't use old provider statuses to block new orders.
       const busyAccountIds: string[] = []
-      
-      // LIVE VERIFY: For each potentially blocking run, check provider API for fresh status
-      for (const activeRun of providerActiveForLinkAndType) {
-        if (!activeRun.provider_account_id || busyAccountIds.includes(activeRun.provider_account_id)) continue
-        
-        // Get provider account details for live check
-        const { data: provAccount } = await supabase
-          .from('provider_accounts')
-          .select('api_key, api_url, name')
-          .eq('id', activeRun.provider_account_id)
-          .single()
-        
-        if (provAccount && activeRun.provider_order_id) {
-          // LIVE CHECK provider status
-          const liveResult = await checkProviderOrderStatusWithRetries({
-            apiUrl: provAccount.api_url,
-            apiKey: provAccount.api_key,
-            providerOrderId: activeRun.provider_order_id,
-            maxAttempts: 1,
-            attemptDelayMs: 0,
-          })
-          
-          const terminalStatuses = ['Completed', 'Complete', 'Partial', 'Refunded', 'Canceled', 'Cancelled', 'Error', 'Failed', 'Success', 'Refund', 'Canscelled']
-          
-          if (liveResult.ok) {
-            const liveStatus = liveResult.data?.status || ''
-            // Update our DB with fresh status
-            await supabase.from('organic_run_schedule').update({
-              provider_status: liveStatus,
-              last_status_check: new Date().toISOString(),
-            }).eq('id', activeRun.id)
-            
-            if (terminalStatuses.includes(liveStatus)) {
-              console.log(`✅ Live check: Run #${activeRun.run_number} on ${provAccount.name} is NOW ${liveStatus} — account FREED`)
-              continue // Don't block this account
-            } else {
-              console.log(`🔴 Live check: Run #${activeRun.run_number} on ${provAccount.name} still ${liveStatus} — blocking`)
-              busyAccountIds.push(activeRun.provider_account_id)
-            }
-          } else {
-            // If live check fails, err on the side of caution — block
-            console.log(`⚠️ Live check failed for run #${activeRun.run_number} on ${provAccount.name}: ${liveResult.error} — blocking to be safe`)
-            busyAccountIds.push(activeRun.provider_account_id)
-          }
-        } else {
-          busyAccountIds.push(activeRun.provider_account_id)
-          console.log(`🔴 Account ${activeRun.provider_account_id} has non-terminal provider order — blocking same link`)
-        }
-      }
       
       // 3. NEW: Check for RECENTLY FAILED runs with "Active Order" errors (Cooldown Logic)
       // If Provider A failed with "Active order" for THIS link in the last 15 mins,
@@ -1353,6 +1291,9 @@ serve(async (req) => {
         await supabase.from('engagement_orders').update({
           status: 'processing',
         }).eq('id', item.engagement_order_id).not('status', 'in', '("cancelled","paused")')
+
+        // Add to local tracking set before continuing to prevent duplicates in same loop
+        startedInThisExecution.add(localExecutionKey)
 
         processed++
         results.push({ 
