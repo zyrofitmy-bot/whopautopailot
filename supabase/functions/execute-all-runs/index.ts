@@ -456,7 +456,7 @@ serve(async (req) => {
       .not('engagement_order_item_id', 'is', null)
       .lte('scheduled_at', nowWithBuffer)
       .order('run_number', { ascending: true })
-      .limit(50)
+      .limit(1000) // Increased from 50 to 1000 to prevent queue starvation by backlogged chunks
 
     if (pendingEngagementRuns && pendingEngagementRuns.length > 0) {
       console.log(`✅ Found ${pendingEngagementRuns.length} pending runs due`)
