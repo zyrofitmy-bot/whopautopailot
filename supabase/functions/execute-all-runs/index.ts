@@ -705,28 +705,11 @@ serve(async (req) => {
       
       const sameLinkNormalized = sameLink.toLowerCase().trim().replace(/\/$/, '')
       const currentTypeNormalized = currentType.toLowerCase().trim()
-      const localExecutionKey = `${sameLinkNormalized}|${currentTypeNormalized}`
-
-      // RELAXED LINK GUARD + LOCAL TRACKING:
-      // We only block this run if another run for the SAME LINK AND SAME ENGAGEMENT TYPE is active.
-      // We check both GLOBAL active runs and LOCALLY started runs in this loop.
-      const isTypeActiveGlobal = (activeRuns || []).some((ar: any) => {
-        const arLink = (ar.engagement_order_item?.engagement_order?.link || '').toLowerCase().trim().replace(/\/$/, '')
-        const arType = ar.engagement_order_item?.engagement_type?.toLowerCase()
-        return arLink === sameLinkNormalized && arType === currentTypeNormalized
-      })
-
-      const isTypeActiveLocal = startedInThisExecution.has(localExecutionKey)
-
-      if (isTypeActiveGlobal || isTypeActiveLocal) {
-        console.log(`[${executionId}] ⏭️ Another ${currentType} run is already active for link ${sameLink} — skipping to ensure sequential delivery`)
-        skipped++
-        results.push({ 
-          run_id: run.id, run_number: run.run_number, type: item.engagement_type,
-          skipped: true, reason: `${currentType} already active (Global: ${isTypeActiveGlobal}, Local: ${isTypeActiveLocal})` 
-        })
-        continue
-      }
+      
+      // RELAXED LINK GUARD:
+      // We no longer block globally. We only block per PROVIDER ACCOUNT.
+      // This allows different providers to work on the same link in parallel.
+      // The blocking check is now performed during provider selection.
       
       // 1. Check STARTED runs for same link + same service_id
       // USE PRE-FETCHED Global activeRuns for better performance
@@ -992,6 +975,25 @@ serve(async (req) => {
       let verifiedLastStatusCheck: string | null = null
       
       for (const { account: selectedAccount, providerServiceId } of accountsToTry) {
+        // PER-ACCOUNT LINK GUARD:
+        // Ensure this specific account isn't already working on this link/type.
+        const accountExecutionKey = `${sameLinkNormalized}|${currentTypeNormalized}|${selectedAccount.id}`
+        
+        const isAccountBusyForLinkGlobal = (activeRuns || []).some((ar: any) => {
+          const arLink = (ar.engagement_order_item?.engagement_order?.link || '').toLowerCase().trim().replace(/\/$/, '')
+          const arType = ar.engagement_order_item?.engagement_type?.toLowerCase()
+          const arAccountId = ar.provider_account_id
+          return arLink === sameLinkNormalized && arType === currentTypeNormalized && arAccountId === selectedAccount.id
+        })
+        
+        const isAccountBusyForLinkLocal = startedInThisExecution.has(accountExecutionKey)
+        
+        if (isAccountBusyForLinkGlobal || isAccountBusyForLinkLocal) {
+          console.log(`[${executionId}] ⏭️ Account ${selectedAccount.name} is already busy with ${currentType} for link ${sameLinkNormalized} — trying next provider`)
+          lastError = `Account busy for this link (${isAccountBusyForLinkGlobal ? 'Global' : 'Local'})`
+          continue
+        }
+
         console.log(`\n📤 Trying account: ${selectedAccount.name} (service ID: ${providerServiceId})`)
         
         // PRE-CHECK 0: Re-verify order/item is NOT cancelled before sending to provider
@@ -1293,7 +1295,8 @@ serve(async (req) => {
         }).eq('id', item.engagement_order_id).not('status', 'in', '("cancelled","paused")')
 
         // Add to local tracking set before continuing to prevent duplicates in same loop
-        startedInThisExecution.add(localExecutionKey)
+        const accountExecutionKey = `${sameLinkNormalized}|${currentTypeNormalized}|${successAccount.id}`
+        startedInThisExecution.add(accountExecutionKey)
 
         processed++
         results.push({ 
