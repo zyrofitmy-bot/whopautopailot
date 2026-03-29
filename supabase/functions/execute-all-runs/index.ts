@@ -707,26 +707,15 @@ serve(async (req) => {
       const currentTypeNormalized = currentType.toLowerCase().trim()
       const localExecutionKey = `${sameLinkNormalized}|${currentTypeNormalized}`
       
-      // STRICT LINK GUARD + LOCAL TRACKING (Reverted per user request):
-      // We block this run if another run for the SAME LINK AND SAME ENGAGEMENT TYPE is active anywhere.
-      // This ensures strictly sequential delivery (one order completes before the next begins).
-      const isTypeActiveGlobal = (activeRuns || []).some((ar: any) => {
-        const arLink = (ar.engagement_order_item?.engagement_order?.link || '').toLowerCase().trim().replace(/\/$/, '')
-        const arType = ar.engagement_order_item?.engagement_type?.toLowerCase()
-        return arLink === sameLinkNormalized && arType === currentTypeNormalized
-      })
-      
-      const isTypeActiveLocal = startedInThisExecution.has(localExecutionKey)
-      
-      if (isTypeActiveGlobal || isTypeActiveLocal) {
-        console.log(`[${executionId}] ⏭️ Another ${currentType} run is already active for link ${sameLink} — skipping to ensure strict sequence`)
-        skipped++
-        results.push({ 
-          run_id: run.id, run_number: run.run_number, type: item.engagement_type,
-          skipped: true, reason: `${currentType} already active (Global: ${isTypeActiveGlobal}, Local: ${isTypeActiveLocal})` 
-        })
-        continue
-      }
+      // ============================================
+      // PER-PROVIDER LINK GUARD (New Parallel Multi-Provider Logic):
+      // We no longer block the RUN entirely if another run is active for the same link.
+      // Instead, we let it proceed to the Provider Selection Phase.
+      // The logic below will map ALL currently active runs for this link to their respective providers,
+      // and add those providers to `busyAccountIds`.
+      // If Provider 1 is busy with this link, it skips Provider 1 and selects Provider 2!
+      // If ALL providers are busy, it will gracefully exit and wait for one to finish. 
+      // ============================================
       
       // 1. Check STARTED runs for same link + same service_id
       // USE PRE-FETCHED Global activeRuns for better performance
