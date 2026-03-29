@@ -570,32 +570,11 @@ serve(async (req) => {
         continue
       }
 
-      // 👁️ VIEWS FIRST LOGIC: Non-view engagement (likes/comments/etc) must wait for views
+      // 👁️ VIEWS FIRST LOGIC: DISABLED — was causing deadlocks where stuck views blocked ALL other types
+      // All engagement types now process independently for maximum throughput
       const viewTypes = ['views', 'impressions', 'reach', 'plays', 'watch_hours']
       const currentType = item.engagement_type?.toLowerCase()
       const isViewAction = viewTypes.includes(currentType)
-      
-      if (!isViewAction && item.engagement_order_id) {
-        // Find if there are any View items for the same engagement_order that are still pending/due
-        const { data: pendingViews } = await supabase
-          .from('organic_run_schedule')
-          .select('id, status, engagement_order_items!inner(engagement_order_id, engagement_type)')
-          .eq('status', 'pending')
-          .lte('scheduled_at', nowWithBuffer)
-          .eq('engagement_order_items.engagement_order_id', item.engagement_order_id)
-          .in('engagement_order_items.engagement_type', viewTypes)
-          .limit(1)
-
-        if (pendingViews && pendingViews.length > 0) {
-          console.log(`⏳ Run #${run.run_number} (${currentType}) waiting: views for same order are still pending/due`)
-          skipped++
-          results.push({ 
-            run_id: run.id, run_number: run.run_number, type: item.engagement_type,
-            skipped: true, reason: `Waiting for ${pendingViews.length} pending views for same order`
-          })
-          continue
-        }
-      }
 
       // SKIP PAUSED/CANCELLED ORDERS: Check if parent engagement order OR item is paused/cancelled
       const engagementOrderStatus = item.engagement_order?.status
