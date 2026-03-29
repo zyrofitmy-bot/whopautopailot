@@ -705,11 +705,28 @@ serve(async (req) => {
       
       const sameLinkNormalized = sameLink.toLowerCase().trim().replace(/\/$/, '')
       const currentTypeNormalized = currentType.toLowerCase().trim()
+      const localExecutionKey = `${sameLinkNormalized}|${currentTypeNormalized}`
       
-      // RELAXED LINK GUARD:
-      // We no longer block globally. We only block per PROVIDER ACCOUNT.
-      // This allows different providers to work on the same link in parallel.
-      // The blocking check is now performed during provider selection.
+      // STRICT LINK GUARD + LOCAL TRACKING (Reverted per user request):
+      // We block this run if another run for the SAME LINK AND SAME ENGAGEMENT TYPE is active anywhere.
+      // This ensures strictly sequential delivery (one order completes before the next begins).
+      const isTypeActiveGlobal = (activeRuns || []).some((ar: any) => {
+        const arLink = (ar.engagement_order_item?.engagement_order?.link || '').toLowerCase().trim().replace(/\/$/, '')
+        const arType = ar.engagement_order_item?.engagement_type?.toLowerCase()
+        return arLink === sameLinkNormalized && arType === currentTypeNormalized
+      })
+      
+      const isTypeActiveLocal = startedInThisExecution.has(localExecutionKey)
+      
+      if (isTypeActiveGlobal || isTypeActiveLocal) {
+        console.log(`[${executionId}] ⏭️ Another ${currentType} run is already active for link ${sameLink} — skipping to ensure strict sequence`)
+        skipped++
+        results.push({ 
+          run_id: run.id, run_number: run.run_number, type: item.engagement_type,
+          skipped: true, reason: `${currentType} already active (Global: ${isTypeActiveGlobal}, Local: ${isTypeActiveLocal})` 
+        })
+        continue
+      }
       
       // 1. Check STARTED runs for same link + same service_id
       // USE PRE-FETCHED Global activeRuns for better performance
@@ -816,16 +833,7 @@ serve(async (req) => {
             }
             console.log(`⚡ Account ${stuckRun.provider_account_id} busy with run #${stuckRun.run_number} (${runAge}s) — instantly skipping to other providers`)
             
-            // Auto-complete if stuck for 10+ minutes (safety net)
-            if (ageMinutes >= 10) {
-              console.log(`🔄 Auto-completing stuck run #${stuckRun.run_number} after ${ageMinutes}min`)
-              await supabase.from('organic_run_schedule').update({
-                status: 'completed',
-                completed_at: new Date().toISOString(),
-                error_message: `Auto-completed after ${ageMinutes}min (status: ${stuckRun.provider_status || 'unknown'})`,
-              }).eq('id', stuckRun.id)
-              // DON'T remove from busy — provider still has the order active!
-            }
+            // Auto-complete logic removed per user request. Runs will wait for provider to finish naturally.
           }
         }
       }
@@ -975,25 +983,6 @@ serve(async (req) => {
       let verifiedLastStatusCheck: string | null = null
       
       for (const { account: selectedAccount, providerServiceId } of accountsToTry) {
-        // PER-ACCOUNT LINK GUARD:
-        // Ensure this specific account isn't already working on this link/type.
-        const accountExecutionKey = `${sameLinkNormalized}|${currentTypeNormalized}|${selectedAccount.id}`
-        
-        const isAccountBusyForLinkGlobal = (activeRuns || []).some((ar: any) => {
-          const arLink = (ar.engagement_order_item?.engagement_order?.link || '').toLowerCase().trim().replace(/\/$/, '')
-          const arType = ar.engagement_order_item?.engagement_type?.toLowerCase()
-          const arAccountId = ar.provider_account_id
-          return arLink === sameLinkNormalized && arType === currentTypeNormalized && arAccountId === selectedAccount.id
-        })
-        
-        const isAccountBusyForLinkLocal = startedInThisExecution.has(accountExecutionKey)
-        
-        if (isAccountBusyForLinkGlobal || isAccountBusyForLinkLocal) {
-          console.log(`[${executionId}] ⏭️ Account ${selectedAccount.name} is already busy with ${currentType} for link ${sameLinkNormalized} — trying next provider`)
-          lastError = `Account busy for this link (${isAccountBusyForLinkGlobal ? 'Global' : 'Local'})`
-          continue
-        }
-
         console.log(`\n📤 Trying account: ${selectedAccount.name} (service ID: ${providerServiceId})`)
         
         // PRE-CHECK 0: Re-verify order/item is NOT cancelled before sending to provider
@@ -1295,8 +1284,7 @@ serve(async (req) => {
         }).eq('id', item.engagement_order_id).not('status', 'in', '("cancelled","paused")')
 
         // Add to local tracking set before continuing to prevent duplicates in same loop
-        const accountExecutionKey = `${sameLinkNormalized}|${currentTypeNormalized}|${successAccount.id}`
-        startedInThisExecution.add(accountExecutionKey)
+        startedInThisExecution.add(localExecutionKey)
 
         processed++
         results.push({ 

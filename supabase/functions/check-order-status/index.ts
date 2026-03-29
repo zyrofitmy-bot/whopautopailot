@@ -238,7 +238,6 @@ Deno.serve(async (req) => {
           providerStatus === 'processing order' ||
           !providerStatus // NULL status but still started
         )
-        const isStuckTooLong = ageMinutes >= 10 && isStatusStuck
 
         // Always update provider tracking data
         const trackingUpdate: any = {
@@ -315,31 +314,6 @@ Deno.serve(async (req) => {
             failed++
             await updateEngagementOrderStatus(supabase, run.engagement_order_item?.engagement_order_id, run.engagement_order_item?.id)
           }
-
-        } else if (run.status === 'started' && isStuckTooLong) {
-          // 🚨 Run stuck "In progress"/"Pending" for 10+ minutes - auto-complete to unblock queue
-          // Provider has accepted the order, delivery continues in background
-          console.log(`⏰ Auto-completing run #${run.run_number} after ${ageMinutes}min (status: ${providerStatus}, remains: ${remains})`)
-          
-          await supabase.from('organic_run_schedule').update({
-            ...trackingUpdate,
-            status: 'completed',
-            completed_at: new Date().toISOString(),
-            error_message: `Auto-completed after ${ageMinutes}min (status: ${result.status})`
-          }).eq('id', run.id)
-
-          completed++
-          results.push({
-            run_id: run.id,
-            run_number: run.run_number,
-            type: run.engagement_order_item?.engagement_type,
-            status: 'auto-completed',
-            age_minutes: ageMinutes,
-            provider_status: result.status,
-            remains: remains
-          })
-          
-          await updateEngagementOrderStatus(supabase, run.engagement_order_item?.engagement_order_id, run.engagement_order_item?.id)
 
         } else {
           // Processing/Pending/In progress - update tracking data for live view
