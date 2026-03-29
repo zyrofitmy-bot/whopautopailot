@@ -222,10 +222,23 @@ Deno.serve(async (req) => {
 
         console.log(`Provider status: ${providerStatus}, Start: ${startCount}, Remains: ${remains}, Delivered: ${delivered} (${progressPercent}%)`)
         
-        // Check if run is stuck "In progress" or "Pending" for 10+ minutes (reduced from 30 for faster flow)
         const startedAt = new Date(run.started_at || run.scheduled_at)
         const ageMinutes = Math.round((Date.now() - startedAt.getTime()) / 60000)
-        const isStuckTooLong = ageMinutes >= 10 && (providerStatus === 'in progress' || providerStatus === 'pending' || providerStatus === 'processing')
+
+        // Comprehensive check for stuck runs:
+        // 1. If provider returns a terminal status, always complete
+        // 2. If stuck in a non-terminal status for 10+ minutes, auto-complete to unblock
+        // 3. If "started" for 10+ minutes but NO provider status at all, auto-complete
+        const terminalStatuses = ['completed', 'complete', 'partial', 'refunded', 'canceled', 'cancelled', 'error', 'failed', 'success', 'refund', 'canscelled']
+        const isProviderTerminal = providerStatus && terminalStatuses.includes(providerStatus)
+        const isStatusStuck = !isProviderTerminal && (
+          providerStatus === 'pending' || 
+          providerStatus === 'in progress' || 
+          providerStatus === 'processing' || 
+          providerStatus === 'processing order' ||
+          !providerStatus // NULL status but still started
+        )
+        const isStuckTooLong = ageMinutes >= 10 && isStatusStuck
 
         // Always update provider tracking data
         const trackingUpdate: any = {

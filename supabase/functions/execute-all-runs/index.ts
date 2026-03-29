@@ -403,21 +403,23 @@ serve(async (req) => {
     // ============================================
     console.log(`\n--- Global Stuck Run Cleanup ---`)
     const tenMinAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString()
+    // Handle NULL started_at by treating it as "now" (not stuck yet) or "old" if it's already in started status
     const { data: globalStuckRuns } = await supabase
       .from('organic_run_schedule')
       .select('id, run_number, started_at, provider_account_id, provider_status')
       .eq('status', 'started')
-      .lt('started_at', tenMinAgo)
+      .or(`started_at.lt.${tenMinAgo},started_at.is.null`)
     
     if (globalStuckRuns && globalStuckRuns.length > 0) {
-      console.log(`🧹 Found ${globalStuckRuns.length} globally stuck runs (started > 10min ago), auto-completing...`)
+      console.log(`🧹 Found ${globalStuckRuns.length} globally stuck runs (started > 10min ago or NULL started_at), auto-completing...`)
       for (const stuck of globalStuckRuns) {
-        const ageMin = Math.round((Date.now() - new Date(stuck.started_at).getTime()) / 60000)
+        const startedTime = stuck.started_at ? new Date(stuck.started_at).getTime() : Date.now() - 11 * 60 * 1000 // Assume old if NULL
+        const ageMin = Math.round((Date.now() - startedTime) / 60000)
         console.log(`  🔄 Auto-completing run #${stuck.run_number} (age: ${ageMin}min, status: ${stuck.provider_status || 'unknown'})`)
         await supabase.from('organic_run_schedule').update({
           status: 'completed',
           completed_at: new Date().toISOString(),
-          provider_status: 'Stale', // Set terminal status to free the account
+          provider_status: 'Stale',
           error_message: `Auto-completed after ${ageMin}min (global cleanup, status: ${stuck.provider_status || 'unknown'})`,
         }).eq('id', stuck.id)
       }
@@ -716,27 +718,24 @@ serve(async (req) => {
       const isThisRunOverdue = runScheduledAt < fiveMinAgo
 
       // SMART WAIT MODE: Prevent duplicate orders for SAME SERVICE ID on same panel.
-      // Different services (e.g., TikTok views vs Instagram views) CAN go to same panel simultaneously.
-      // Only the EXACT SAME service_id on the same link is blocked.
-      //
-      // Example: Panel A has TikTok views running → Instagram views CAN go to Panel A ✅
-      //          Panel A has TikTok views running → more TikTok views on same link CANNOT go to Panel A ❌
-      
       const sameLink = (item.engagement_order?.link || '').toLowerCase().replace(/\/$/, '')
-      const currentServiceId = item.service?.id // The actual service UUID
+      const currentServiceId = item.service?.id
       
-      // 2. DUPLICATE LINK GUARD: Ensure no other run for this SAME link is active
-      const isLinkActive = (activeRuns || []).some((ar: any) => {
+      // RELAXED LINK GUARD:
+      // We only block this run if another run for the SAME LINK AND SAME ENGAGEMENT TYPE is active.
+      // This allows Views and Likes for the same link to run in parallel, which unblocks the queue significantly.
+      const isTypeActive = (activeRuns || []).some((ar: any) => {
         const arLink = (ar.engagement_order_item?.engagement_order?.link || '').toLowerCase().trim().replace(/\/$/, '')
-        return arLink === sameLink
+        const arType = ar.engagement_order_item?.engagement_type?.toLowerCase()
+        return arLink === sameLink && arType === currentType
       })
 
-      if (isLinkActive) {
-        console.log(`[${executionId}] ⏭️ Another run is already active for link ${sameLink} — skipping`)
+      if (isTypeActive) {
+        console.log(`[${executionId}] ⏭️ Another ${currentType} run is already active for link ${sameLink} — skipping to avoid provider conflict`)
         skipped++
         results.push({ 
           run_id: run.id, run_number: run.run_number, type: item.engagement_type,
-          skipped: true, reason: `Link ${sameLink} already active` 
+          skipped: true, reason: `${currentType} already active for this link` 
         })
         continue
       }
