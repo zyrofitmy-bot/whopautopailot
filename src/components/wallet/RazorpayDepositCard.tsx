@@ -68,28 +68,40 @@ export default function RazorpayDepositCard() {
       return;
     }
 
+    if (!user?.id) {
+      toast({ title: 'Not Authenticated', description: 'Please log in to submit proof.', variant: 'destructive' });
+      return;
+    }
+
     setLoading(true);
     try {
       let screenshotUrl: string | null = null;
       if (screenshot) {
         const ext = screenshot.name.split('.').pop() || 'jpg';
-        const path = `${user?.id}/${Date.now()}.${ext}`;
-        const { error: uploadErr } = await supabase.storage
+        const path = `${user.id}/${Date.now()}.${ext}`;
+        
+        const { data: uploadData, error: uploadErr } = await supabase.storage
           .from('payment-proofs')
           .upload(path, screenshot, { upsert: true });
-        if (!uploadErr) {
+
+        if (uploadErr) {
+          console.error('Upload error:', uploadErr);
+          throw new Error(`Screenshot upload failed: ${uploadErr.message}`);
+        }
+
+        if (uploadData) {
           const { data: urlData } = supabase.storage.from('payment-proofs').getPublicUrl(path);
           screenshotUrl = urlData.publicUrl;
         }
       }
 
       const descriptionObj = {
-        text: `Paid: ₹${inrAmount} | Name: ${fullName} | Email: ${email} | Credit: $${usdCredit}`,
+        text: `Paid: \u20b9${inrAmount} | Name: ${fullName} | Email: ${email} | Credit: $${usdCredit}`,
         screenshot_url: screenshotUrl,
       };
 
       const { error } = await supabase.from('transactions').insert({
-        user_id: user?.id,
+        user_id: user.id,
         type: 'deposit',
         amount: usdCredit,
         balance_after: 0,
@@ -99,29 +111,37 @@ export default function RazorpayDepositCard() {
         description: JSON.stringify(descriptionObj),
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Insert error:', error);
+        throw new Error(`Database error: ${error.message}`);
+      }
 
-      // Send Telegram Notification to Admin
+      // Send Telegram Notification to Admin (non-blocking)
       const appUrl = window.location.origin;
       supabase.functions.invoke('send-telegram-notification', {
         body: {
-          message: `<b>🚨 NEW DEPOSIT REQUEST</b>\n\n` +
-            `👤 <b>Name:</b> ${fullName || 'N/A'}\n` +
-            `📧 <b>Email:</b> ${email || 'N/A'}\n` +
-            `💰 <b>Paid:</b> ₹${inrAmount}\n` +
-            `💵 <b>Credit:</b> $${usdCredit}\n` +
-            `🆔 <b>UTR:</b> <code>${paymentId}</code>\n\n` +
-            `<a href="${appUrl}/admin/deposits">🔗 Open Admin Panel</a>`,
+          message: `<b>\ud83d\udea8 NEW DEPOSIT REQUEST</b>\n\n` +
+            `\ud83d\udc64 <b>Name:</b> ${fullName || 'N/A'}\n` +
+            `\ud83d\udce7 <b>Email:</b> ${email || 'N/A'}\n` +
+            `\ud83d\udcb0 <b>Paid:</b> \u20b9${inrAmount}\n` +
+            `\ud83d\udcb5 <b>Credit:</b> $${usdCredit}\n` +
+            `\ud83c\udd94 <b>UTR:</b> <code>${paymentId}</code>\n\n` +
+            `<a href="${appUrl}/admin/deposits">\ud83d\udd17 Open Admin Panel</a>`,
           ...(screenshotUrl ? { photo_url: screenshotUrl } : {}),
         },
       }).catch(console.error);
 
       setIsSubmitted(true);
       setStep('done');
-      toast({ title: '✅ Payment Proof Received!', description: 'Your balance will be credited within minutes.' });
+      toast({ title: '\u2705 Payment Proof Received!', description: 'Your balance will be credited within minutes.' });
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
     } catch (err: any) {
-      toast({ title: 'Failed', description: err.message, variant: 'destructive' });
+      console.error('Submission failed:', err);
+      toast({ 
+        title: 'Submission Failed', 
+        description: err.message || 'An unexpected error occurred. Please try again.', 
+        variant: 'destructive' 
+      });
     } finally {
       setLoading(false);
     }
