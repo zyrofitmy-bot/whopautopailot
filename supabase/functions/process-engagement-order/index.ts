@@ -160,10 +160,15 @@ serve(async (req) => {
     const authHeader = req.headers.get('Authorization')
     const supabase = supabaseModule
     const token = authHeader?.replace('Bearer ', '') || ''
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token)
+    
+    // Fix: Use getUser instead of getClaims
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
 
-    if (claimsError || !claimsData?.claims?.sub) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
-    const user_id = claimsData.claims.sub as string
+    if (authError || !user) {
+      console.error('Auth error:', authError)
+      return new Response(JSON.stringify({ error: authError?.message || 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    }
+    const user_id = user.id
 
     const body = await req.json()
     const { bundle_id, link, total_price, engagements, base_quantity } = body
@@ -319,8 +324,14 @@ serve(async (req) => {
             
             const runsLeft = Math.max(1, targetRuns - runNumber + 1)
             let qty = Math.round((remaining / runsLeft) * (0.8 + Math.random() * 0.4) * multiplier)
+            
+            // ATOMIC CLAMP: Each run must be at least providerMin if possible
             qty = Math.max(providerMin, Math.min(qty, remaining, maxBatchCap))
-            if (runNumber === targetRuns || remaining <= maxBatchCap) qty = remaining
+            
+            // Final adjustments: if last run or remaining too small, take it all
+            if (runNumber === targetRuns || remaining <= providerMin) {
+              qty = remaining
+            }
 
             scheduleEntries.push({
               order_id: order.id,
@@ -338,25 +349,55 @@ serve(async (req) => {
             if (runNumber > 1000) break
           }
 
-          if (remaining > 0 && scheduleEntries.length > 0) scheduleEntries[scheduleEntries.length - 1].quantity_to_send += remaining
-          
-          const finalEntries = []
-          let carry = 0
-          for (const e of scheduleEntries) {
-            e.quantity_to_send += carry
-            carry = 0
-            if (e.quantity_to_send < providerMin) carry = e.quantity_to_send
-            else finalEntries.push(e)
+          if (remaining > 0 && scheduleEntries.length > 0) {
+            scheduleEntries[scheduleEntries.length - 1].quantity_to_send += remaining
+            scheduleEntries[scheduleEntries.length - 1].base_quantity += remaining
           }
-          if (carry > 0 && finalEntries.length > 0) finalEntries[finalEntries.length - 1].quantity_to_send += carry
-          finalEntries.forEach((e, i) => e.run_number = i + 1)
+          
+          // Re-normalize and ensure providerMin is respected for ALL runs
+          let carry = 0
+          const validatedEntries = []
+          const totalTargetQty = engagement.quantity
 
-          if (finalEntries.length > 0) {
-            const { error: schedErr } = await supabase.from('organic_run_schedule').insert(finalEntries)
-            if (schedErr) console.error(`Schedule insert error for ${engType}:`, schedErr.message)
-            else console.log(`✅ Scheduled ${finalEntries.length} runs for ${engType}`)
+          for (let i = 0; i < scheduleEntries.length; i++) {
+            const e = scheduleEntries[i]
+            e.quantity_to_send += carry
+            e.base_quantity = e.quantity_to_send
+            carry = 0
+            
+            // If run is below minimum AND we have more runs to come, carry it forward
+            if (e.quantity_to_send < providerMin && i < scheduleEntries.length - 1) {
+              carry = e.quantity_to_send
+            } else {
+              if (e.quantity_to_send > 0) validatedEntries.push(e)
+            }
+          }
+          
+          // Final safety net: If no runs created but quantity exists, create one massive run
+          if (validatedEntries.length === 0 && totalTargetQty > 0) {
+            validatedEntries.push({
+              order_id: order.id,
+              engagement_order_item_id: itemId,
+              run_number: 1,
+              scheduled_at: new Date(startTime.getTime() + 10 * 60 * 1000).toISOString(),
+              quantity_to_send: Math.max(carry, totalTargetQty),
+              base_quantity: Math.max(carry, totalTargetQty),
+              status: 'pending'
+            })
+          }
+          
+          validatedEntries.forEach((e, i) => e.run_number = i + 1)
+
+          if (validatedEntries.length > 0) {
+            const { error: schedErr } = await supabase.from('organic_run_schedule').insert(validatedEntries)
+            if (schedErr) {
+               console.error(`❌ [${engType}] Insert error:`, schedErr.message)
+            } else {
+               const scheduledSum = validatedEntries.reduce((s, r) => s + r.quantity_to_send, 0)
+               console.log(`✅ [${engType}] Scheduled ${validatedEntries.length} runs. (Sum: ${scheduledSum}, Target: ${totalTargetQty})`)
+            }
           } else {
-            console.warn(`⚠️ No schedule entries created for ${engType}`)
+            console.warn(`⚠️ [${engType}] No schedule entries created (qty: ${totalTargetQty})`)
           }
         }
 

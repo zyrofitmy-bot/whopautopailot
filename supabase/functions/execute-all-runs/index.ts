@@ -411,17 +411,33 @@ serve(async (req) => {
       .or(`started_at.lt.${tenMinAgo},started_at.is.null`)
     
     if (globalStuckRuns && globalStuckRuns.length > 0) {
-      console.log(`🧹 Found ${globalStuckRuns.length} globally stuck runs (started > 10min ago or NULL started_at), auto-completing...`)
+      console.log(`🧹 Found ${globalStuckRuns.length} globally stuck runs (started > 10min ago or NULL started_at), cleaning up...`)
       for (const stuck of globalStuckRuns) {
         const startedTime = stuck.started_at ? new Date(stuck.started_at).getTime() : Date.now() - 11 * 60 * 1000 // Assume old if NULL
         const ageMin = Math.round((Date.now() - startedTime) / 60000)
-        console.log(`  🔄 Auto-completing run #${stuck.run_number} (age: ${ageMin}min, status: ${stuck.provider_status || 'unknown'})`)
-        await supabase.from('organic_run_schedule').update({
-          status: 'completed',
-          completed_at: new Date().toISOString(),
-          provider_status: 'Stale',
-          error_message: `Auto-completed after ${ageMin}min (global cleanup, status: ${stuck.provider_status || 'unknown'})`,
-        }).eq('id', stuck.id)
+        
+        // GHOST RUN DETECTION: If no provider_order_id, it likely crashed BEFORE sending.
+        // Revert to pending so it can try again (with a different account if needed).
+        if (!stuck.provider_order_id) {
+          console.log(`  🔄 Reverting ghost run #${stuck.run_number} (age: ${ageMin}min, no provider order id) to pending`)
+          await supabase.from('organic_run_schedule').update({
+            status: 'pending',
+            started_at: null,
+            provider_account_id: null,
+            error_message: `Ghost run reverted after ${ageMin}min (no provider order id)`,
+          }).eq('id', stuck.id)
+        } else {
+          // Has provider_order_id but stuck at 'started' for 10+ min?
+          // This happens if the status check failed or provider is very slow.
+          // Auto-complete to unblock the sequence.
+          console.log(`  ✅ Auto-completing stuck run #${stuck.run_number} (age: ${ageMin}min, provider status: ${stuck.provider_status || 'unknown'})`)
+          await supabase.from('organic_run_schedule').update({
+            status: 'completed',
+            completed_at: new Date().toISOString(),
+            provider_status: stuck.provider_status || 'Stale',
+            error_message: `Auto-completed after ${ageMin}min (global cleanup, status: ${stuck.provider_status || 'unknown'})`,
+          }).eq('id', stuck.id)
+        }
       }
       console.log(`✅ Cleaned up ${globalStuckRuns.length} stuck runs`)
     } else {
