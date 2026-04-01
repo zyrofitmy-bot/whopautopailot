@@ -323,8 +323,12 @@ serve(async (req) => {
             if (runNumber === targetRuns || remaining <= maxBatchCap) qty = remaining
 
             scheduleEntries.push({
-              engagement_order_item_id: itemId, run_number: runNumber,
-              scheduled_at: scheduledAt.toISOString(), quantity_to_send: qty,
+              order_id: order.id,
+              engagement_order_item_id: itemId,
+              run_number: runNumber,
+              scheduled_at: scheduledAt.toISOString(),
+              quantity_to_send: qty,
+              base_quantity: qty,
               status: 'pending'
             })
 
@@ -347,7 +351,13 @@ serve(async (req) => {
           if (carry > 0 && finalEntries.length > 0) finalEntries[finalEntries.length - 1].quantity_to_send += carry
           finalEntries.forEach((e, i) => e.run_number = i + 1)
 
-          if (finalEntries.length > 0) await supabase.from('organic_run_schedule').insert(finalEntries)
+          if (finalEntries.length > 0) {
+            const { error: schedErr } = await supabase.from('organic_run_schedule').insert(finalEntries)
+            if (schedErr) console.error(`Schedule insert error for ${engType}:`, schedErr.message)
+            else console.log(`✅ Scheduled ${finalEntries.length} runs for ${engType}`)
+          } else {
+            console.warn(`⚠️ No schedule entries created for ${engType}`)
+          }
         }
 
         fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/execute-all-runs`, {
@@ -355,7 +365,7 @@ serve(async (req) => {
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}` },
           body: JSON.stringify({ instant: true, order_id: order.id })
         }).catch(() => {})
-      } catch (err) { console.error('Background error:', err) }
+      } catch (err: any) { console.error('Background error:', err?.message || err) }
     }
 
     if (typeof (globalThis as any).EdgeRuntime !== 'undefined' && (globalThis as any).EdgeRuntime.waitUntil) {
