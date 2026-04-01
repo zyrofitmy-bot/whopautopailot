@@ -21,28 +21,28 @@ input[type="number"] {
 @layer base {
   :root {
     /* ═══════════════════════════════════════════
-       PREMIUM LIGHT THEME (CLEAN & MODERN)
+       ULTRA DEEP PREMIUM AI THEME (WHOPAUTOPILOT 2.0)
        ═══════════════════════════════════════════ */
-    --background: 0 0% 98%;
-    --foreground: 222 47% 11%;
+    --background: 222 47% 3%; /* Deep Space Black/Blue */
+    --foreground: 210 40% 98%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card: 222 47% 5%;
+    --card-foreground: 210 40% 98%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover: 222 47% 5%;
+    --popover-foreground: 210 40% 98%;
 
-    --primary: 221 83% 53%; /* Vibrant Blue */
-    --primary-foreground: 210 40% 98%;
+    --primary: 199 89% 48%; /* Vibrant Cyan/Blue #0ea5e9 */
+    --primary-foreground: 222 47% 3%;
 
-    --secondary: 210 40% 94%;
-    --secondary-foreground: 222 47% 11.2%;
+    --secondary: 222 47% 10%;
+    --secondary-foreground: 210 40% 98%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%; /* Slate Gray for text */
+    --muted: 222 47% 10%;
+    --muted-foreground: 215 20.2% 65.1%;
 
-    --accent: 210 40% 94.1%;
-    --accent-foreground: 222 47% 11.2%;
+    --accent: 199 89% 48%;
+    --accent-foreground: 222 47% 3%;
 
     --success: 142 71% 45%;
     --success-foreground: 144 61% 10%;
@@ -53,29 +53,29 @@ input[type="number"] {
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 214.3 31.8% 90%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
+    --border: 222 47% 12%;
+    --input: 222 47% 12%;
+    --ring: 199 89% 48%;
 
-    --radius: 1rem;
+    --radius: 1.5rem;
 
-    /* ════ GRADIENTS ════ */
-    --gradient-primary: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-    --gradient-accent: linear-gradient(135deg, #0ea5e9 0%, #3b82f6 100%);
+    /* ════ NEON GRADIENTS (CYAN TO BLUE) ════ */
+    --gradient-primary: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%);
+    --gradient-accent: linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%);
 
-    /* ════ SHADOWS ════ */
-    --shadow-3d: 0 10px 30px -10px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0,0,0,0.02);
-    --shadow-3d-active: 0 5px 15px -5px rgba(0, 0, 0, 0.05);
+    /* ════ 3D DEPTH SHADOWS (STATIC) ════ */
+    --shadow-3d: 0 20px 50px -12px rgba(0, 0, 0, 0.95), inset 0 1px 1px rgba(255, 255, 255, 0.05);
+    --shadow-3d-active: 0 10px 20px -5px rgba(0, 0, 0, 0.7), inset 0 1px 1px rgba(255, 255, 255, 0.08);
 
-    /* Sidebar Light */
-    --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 221 83% 53%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 210 40% 96.1%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 214.3 31.8% 90%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    /* Sidebar Dark */
+    --sidebar-background: 222 47% 4%;
+    --sidebar-foreground: 215 20.2% 75.1%;
+    --sidebar-primary: 199 89% 48%;
+    --sidebar-primary-foreground: 222 47% 3%;
+    --sidebar-accent: 222 47% 10%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 222 47% 12%;
+    --sidebar-ring: 199 89% 48%;
   }
 }
 
@@ -85,7 +85,7 @@ html {
 
 /* Global Policy: Minimal transitions, but animations allowed for loaders */
 * {
-  transition: all 0.15s ease-out !important;
+  transition: none !important;
 }
 
 @layer base {
@@ -102,8 +102,8 @@ html {
     text-rendering: optimizeSpeed;
     font-size: 0.95rem;
     background-image:
-      radial-gradient(at 0% 0%, hsla(221, 83%, 53%, 0.04) 0px, transparent 40%),
-      radial-gradient(at 100% 100%, hsla(220, 100%, 95%, 0.5) 0px, transparent 60%);
+      radial-gradient(at 0% 0%, hsla(199, 89%, 48%, 0.08) 0px, transparent 40%),
+      radial-gradient(at 100% 100%, hsla(222, 47%, 10%, 0.4) 0px, transparent 60%);
     background-attachment: fixed;
   }
 
@@ -114,37 +114,37 @@ html {
   h5,
   h6 {
     font-family: 'Outfit', system-ui, sans-serif;
-    font-weight: 800;
-    letter-spacing: -0.03em;
-    @apply text-foreground;
+    font-weight: 900;
+    letter-spacing: -0.05em;
+    text-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
   }
 
   h1 {
     @apply text-3xl sm:text-4xl md:text-5xl;
-    line-height: 1.1;
+    line-height: 1;
   }
 
   h2 {
     @apply text-2xl sm:text-3xl;
-    line-height: 1.2;
+    line-height: 1.1;
   }
 
   h3 {
     @apply text-xl sm:text-2xl;
-    line-height: 1.3;
+    line-height: 1.2;
   }
 
   label,
   .label {
     font-family: 'Inter', system-ui, sans-serif;
-    font-weight: 700;
-    letter-spacing: 0.05em;
-    @apply text-muted-foreground uppercase text-[10px];
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    @apply text-white/40 uppercase text-[9px];
   }
 
   ::selection {
-    background: rgba(59, 130, 246, 0.2);
-    color: #1e3a8a;
+    background: rgba(6, 182, 212, 0.4);
+    color: white;
   }
 }
 
@@ -152,86 +152,97 @@ html {
 
   /* ════ STATIC 3D CARDS ════ */
   .three-d-card {
-    @apply relative overflow-hidden bg-card rounded-[1.5rem] border border-border;
+    @apply relative overflow-hidden rounded-[2rem];
+    background: rgba(20, 20, 28, 0.8);
+    backdrop-filter: blur(25px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     box-shadow: var(--shadow-3d);
   }
 
   .glass-premium {
-    @apply three-d-card bg-white/70 backdrop-blur-xl border border-white/60;
-    box-shadow: 0 20px 40px -15px rgba(0,0,0,0.05), inset 0 1px 0 rgba(255,255,255,0.8);
+    @apply three-d-card;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(20, 20, 28, 0.9) 100%);
   }
 
   .glass-panel {
-    @apply rounded-xl bg-white/80 backdrop-blur-md border border-black/5;
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.5);
+    @apply rounded-2xl;
+    background: rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.05);
   }
 
   .gradient-text {
-    @apply bg-clip-text text-transparent font-extrabold;
+    @apply bg-clip-text text-transparent font-black;
     background-image: var(--gradient-primary);
+    filter: drop-shadow(0 0 8px rgba(6, 182, 212, 0.3));
   }
 
-  /* ════ STATIC BUTTONS ════ */
+  /* ════ STATIC 3D BUTTONS ════ */
   .btn-3d {
-    @apply relative overflow-hidden font-bold rounded-xl flex items-center justify-center text-white shadow-md transition-all;
+    @apply relative overflow-hidden font-black rounded-2xl flex items-center justify-center;
     background: var(--gradient-primary);
-    box-shadow: 0 4px 10px -2px rgba(37, 99, 235, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.2);
-  }
-
-  .btn-3d:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 6px 15px -3px rgba(37, 99, 235, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.2);
+    color: var(--primary-foreground);
+    box-shadow:
+      0 8px 0px 0px #1d4ed8,
+      0 15px 30px -5px rgba(0, 0, 0, 0.6),
+      inset 0 1px 2px rgba(255, 255, 255, 0.4);
+    transform: translateY(-5px);
   }
 
   .btn-3d:active {
-    transform: translateY(1px);
-    box-shadow: 0 2px 4px -2px rgba(37, 99, 235, 0.4);
+    transform: translateY(-2px);
+    box-shadow:
+      0 4px 0px 0px #1d4ed8,
+      0 10px 20px -5px rgba(0, 0, 0, 0.5);
   }
 
   .btn-glass {
-    @apply relative overflow-hidden font-semibold rounded-xl bg-white border border-border text-foreground shadow-sm hover:shadow-md transition-all;
+    @apply relative overflow-hidden font-bold rounded-2xl;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: white;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
   }
 
   /* ════ NAVIGATION ════ */
   .nav-link {
-    @apply flex items-center gap-3 px-4 py-3 rounded-xl text-muted-foreground font-medium hover:bg-secondary/60 hover:text-foreground transition-all;
+    @apply flex items-center gap-3 px-4 py-3 rounded-2xl text-white/40 font-black;
   }
 
   .nav-link-active {
-    @apply text-primary font-bold bg-primary/10 border border-primary/20 shadow-sm;
+    @apply text-white font-black bg-primary/10 border border-primary/20;
+    box-shadow: 0 0 20px -5px rgba(6, 182, 212, 0.3);
   }
 
   /* ════ INPUTS ════ */
   .input-3d {
-    @apply bg-background border-border rounded-xl font-medium shadow-sm transition-all focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none;
+    @apply bg-white/[0.04] border-white/10 rounded-2xl font-bold;
+    box-shadow: inset 0 3px 6px rgba(0, 0, 0, 0.4), 0 1px 1px rgba(255, 255, 255, 0.05);
   }
 
   .input-3d:focus {
-    @apply border-primary ring-2 ring-primary/20;
+    @apply border-primary/40 bg-white/[0.07] ring-0 outline-none;
   }
 
   .glow-neon {
-    box-shadow: 0 0 15px rgba(59, 130, 246, 0.3);
+    box-shadow: 0 0 25px rgba(6, 182, 212, 0.4);
   }
 }
 
 @layer utilities {
   .scrollbar-thin {
     scrollbar-width: thin;
-    scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+    scrollbar-color: rgba(6, 182, 212, 0.2) transparent;
   }
 
   .scrollbar-thin::-webkit-scrollbar {
-    width: 6px;
+    width: 4px;
   }
 
   .scrollbar-thin::-webkit-scrollbar-thumb {
-    background: rgba(0, 0, 0, 0.15);
+    background: rgba(6, 182, 212, 0.3);
     border-radius: 10px;
-  }
-  
-  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-    background: rgba(0, 0, 0, 0.25);
   }
 }
 
