@@ -283,6 +283,9 @@ serve(async (req) => {
           const minIntCap = MIN_INTERVAL_CAPS[engType] || MIN_INTERVAL_CAPS.generic
 
           let idealRuns = Math.round((engagement.quantity / 1000) * config.runsPerThousand)
+          const maxPosForQty = Math.max(1, Math.floor(engagement.quantity / providerMin))
+          const absoluteMaxRuns = Math.max(1, Math.floor(maxPosForQty * 0.8))
+          
           let targetRuns: number
           let timeLimitApplied = false
 
@@ -290,7 +293,12 @@ serve(async (req) => {
             const totalMinutes = timeLimitHours * 60
             const availableMinutes = Math.max(30, totalMinutes - initialDelayMinutes)
             const maxPosRuns = Math.floor(availableMinutes / 5)
-            targetRuns = Math.min(maxPosRuns, Math.max(config.minRunsPerOrder, Math.min(config.maxRunsPerOrder, idealRuns)))
+            
+            let initialTarget = Math.min(maxPosRuns, Math.max(config.minRunsPerOrder, Math.min(config.maxRunsPerOrder, idealRuns)))
+            // Clamp targetRuns first so baseInterval spans the entire time limit
+            targetRuns = Math.min(initialTarget, absoluteMaxRuns)
+            if (targetRuns < 2 && engagement.quantity >= providerMin * 2) targetRuns = 2
+            
             const avgNeeded = Math.ceil(engagement.quantity / targetRuns)
             maxBatchCap = Math.max(maxBatchCap, Math.min(avgNeeded * 2, providerMin * 4))
             baseInterval = Math.max(5, availableMinutes / Math.max(targetRuns - 1, 1))
@@ -299,11 +307,9 @@ serve(async (req) => {
             console.log(`  ⏱️ ${engType}: ${timeLimitHours}h | Stagger ${Math.round(initialDelayMinutes)}m | Int ${baseInterval.toFixed(1)}m | Runs ${targetRuns}`)
           } else {
             targetRuns = Math.max(config.minRunsPerOrder, Math.ceil(engagement.quantity / maxBatchCap), Math.min(config.maxRunsPerOrder, idealRuns))
+            targetRuns = Math.min(targetRuns, absoluteMaxRuns)
+            if (targetRuns < 2 && engagement.quantity >= providerMin * 2) targetRuns = 2
           }
-
-          const maxPosForQty = Math.max(1, Math.floor(engagement.quantity / providerMin))
-          targetRuns = Math.min(targetRuns, Math.max(1, Math.floor(maxPosForQty * 0.8)))
-          if (targetRuns < 2 && engagement.quantity >= providerMin * 2) targetRuns = 2
 
           let remaining = engagement.quantity
           let currentTime: Date
@@ -334,7 +340,6 @@ serve(async (req) => {
             }
 
             scheduleEntries.push({
-              order_id: order.id,
               engagement_order_item_id: itemId,
               run_number: runNumber,
               scheduled_at: scheduledAt.toISOString(),
@@ -376,7 +381,6 @@ serve(async (req) => {
           // Final safety net: If no runs created but quantity exists, create one massive run
           if (validatedEntries.length === 0 && totalTargetQty > 0) {
             validatedEntries.push({
-              order_id: order.id,
               engagement_order_item_id: itemId,
               run_number: 1,
               scheduled_at: new Date(startTime.getTime() + 10 * 60 * 1000).toISOString(),
