@@ -118,7 +118,8 @@ html {
 
   /* ════ PREMIUM DARK CARDS ════ */
   .three-d-card {
-    @apply relative overflow-hidden rounded-[1.5rem] bg-card border border-white/10 shadow-soft;
+    @apply relative overflow-hidden rounded-[1.5rem] bg-card border border-white/10;
+    box-shadow: var(--shadow-soft);
   }
 
   .glass-premium {
@@ -129,7 +130,8 @@ html {
   }
 
   .glass-panel {
-    @apply rounded-2xl bg-slate-900/40 border border-white/5 shadow-soft;
+    @apply rounded-2xl bg-slate-900/40 border border-white/5;
+    box-shadow: var(--shadow-soft);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
   }
