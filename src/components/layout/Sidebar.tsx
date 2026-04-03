@@ -111,7 +111,7 @@ export function Sidebar({ onClose }: SidebarProps) {
               <p className="text-[9px] font-black tracking-[0.2em] uppercase text-white/30">Console Wallet</p>
             </div>
 
-            <p className="text-3xl font-[1000] tracking-tighter leading-none text-white mb-6 drop-shadow-2xl">
+            <p className="text-2xl font-[1000] tracking-tighter leading-none text-white mb-4 drop-shadow-xl">
               {formatPrice(wallet?.balance || 0)}
             </p>
 

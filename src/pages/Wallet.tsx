@@ -66,26 +66,26 @@ export default function Wallet() {
         </div>
 
         {/* Balance Card */}
-        <div className="glass-premium p-10 relative overflow-hidden group">
-          <div className="absolute top-0 right-0 w-80 h-80 bg-primary/10 rounded-full blur-[100px] animate-pulse-glow" />
+        <div className="glass-premium p-6 md:p-8 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-60 h-60 bg-primary/10 rounded-full blur-[80px] animate-pulse-glow" />
           <div className="relative z-10">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20">
-                <WalletIcon className="h-5 w-5 text-primary" />
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center border border-primary/20">
+                <WalletIcon className="h-4 w-4 text-primary" />
               </div>
-              <p className="text-xs font-black uppercase tracking-[0.2em]" style={{ color: 'hsl(145 15% 50%)' }}>Vault Statistics</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.2em]" style={{ color: 'hsl(145 15% 50%)' }}>Vault Statistics</p>
             </div>
-            <p className="text-sm text-muted-foreground mb-1">Total Available</p>
-            <p className="text-6xl font-black tracking-tighter" style={{ color: 'hsl(140 60% 95%)' }}>{formatPrice(wallet?.balance || 0)}</p>
+            <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-0.5">Total Available</p>
+            <p className="text-4xl md:text-5xl font-black tracking-tighter" style={{ color: 'hsl(140 60% 95%)' }}>{formatPrice(wallet?.balance || 0)}</p>
 
-            <div className="grid grid-cols-2 gap-8 pt-8 mt-10 border-t border-white/5">
-              <div className="space-y-1">
-                <p className="text-[10px] font-black uppercase tracking-widest opacity-40">Revenue Injected</p>
-                <p className="text-2xl font-black text-primary">{formatPrice(wallet?.total_deposited || 0)}</p>
+            <div className="grid grid-cols-2 gap-4 pt-4 mt-6 border-t border-white/5">
+              <div className="space-y-0.5">
+                <p className="text-[9px] font-black uppercase tracking-widest opacity-40">Revenue Injected</p>
+                <p className="text-xl font-black text-primary leading-tight">{formatPrice(wallet?.total_deposited || 0)}</p>
               </div>
-              <div className="space-y-1">
-                <p className="text-[10px] font-black uppercase tracking-widest opacity-40">Marketing Burn</p>
-                <p className="text-2xl font-black text-red-500/80">{formatPrice(wallet?.total_spent || 0)}</p>
+              <div className="space-y-0.5">
+                <p className="text-[9px] font-black uppercase tracking-widest opacity-40">Marketing Burn</p>
+                <p className="text-xl font-black text-red-500/80 leading-tight">{formatPrice(wallet?.total_spent || 0)}</p>
               </div>
             </div>
           </div>
