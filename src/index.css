@@ -20,69 +20,49 @@ input[type="number"] {
 
 @layer base {
   :root {
-    --background: 210 40% 98.5%; /* Clean Light Background #fafcff */
-    --foreground: 222 47% 11%;
-
-    --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
-
-    --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
-
-    --primary: 221 83% 53%; /* Strong Royal Blue */
-    --primary-foreground: 210 40% 98%;
-
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222 47.4% 11.2%;
-
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222 47.4% 11.2%;
-
-    --success: 142 71% 45%;
-    --success-foreground: 144 61% 98%;
-
-    --warning: 38 92% 50%;
-    --warning-foreground: 48 96% 98%;
-
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 221 83% 53%;
-
-    --radius: 0.75rem;
-
-    /* ════ MODERN GRADIENTS ════ */
-    --gradient-primary: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-    --gradient-accent: linear-gradient(135deg, #0ea5e9 0%, #3b82f6 100%);
-
-    /* ════ SOFT ELEVATION ════ */
-    --shadow-soft: 0 10px 30px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.02);
-    --shadow-md: 0 20px 50px -12px rgba(0, 0, 0, 0.1);
-  }
-
-  .dark {
-    --background: 222 47% 3%;
+    /* ════ ULTRA HIGH-CONTRAST DARK THEME ════ */
+    --background: 222 47% 2%; /* Deep Black/Blue */
     --foreground: 210 40% 98%;
-    --card: 222 47% 5%;
+
+    --card: 222 47% 4%;
     --card-foreground: 210 40% 98%;
-    --popover: 222 47% 5%;
+
+    --popover: 222 47% 4%;
     --popover-foreground: 210 40% 98%;
-    --primary: 217 91% 60%;
-    --primary-foreground: 222 47% 3%;
+
+    --primary: 199 89% 48%; /* Vibrant Cyan/Blue #0ea5e9 */
+    --primary-foreground: 222 47% 2%;
+
     --secondary: 222 47% 10%;
     --secondary-foreground: 210 40% 98%;
+
     --muted: 222 47% 10%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 222 47% 10%;
-    --accent-foreground: 210 40% 98%;
-    --border: 222 47% 12%;
-    --input: 222 47% 12%;
-    --ring: 217 91% 60%;
+    --muted-foreground: 215 20.2% 70%; /* Brighter muted text */
+
+    --accent: 199 89% 48%;
+    --accent-foreground: 222 47% 2%;
+
+    --success: 142 71% 55%; /* Brighter success */
+    --success-foreground: 144 61% 5%;
+
+    --warning: 42 90% 60%; /* Brighter warning */
+    --warning-foreground: 42 90% 5%;
+
+    --destructive: 0 84.2% 65%; /* Brighter destructive */
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 222 47% 15%;
+    --input: 222 47% 15%;
+    --ring: 199 89% 48%;
+
+    --radius: 1.25rem;
+
+    /* ════ NEON GRADIENTS ════ */
+    --gradient-primary: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%);
+    --gradient-accent: linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%);
+
+    /* ════ DEPTH SHADOWS ════ */
+    --shadow-soft: 0 10px 40px rgba(0, 0, 0, 0.8), inset 0 1px 1px rgba(255, 255, 255, 0.05);
   }
 }
 
@@ -103,8 +83,8 @@ html {
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
     background-image:
-      radial-gradient(at 0% 0%, hsla(221, 83%, 53%, 0.05) 0px, transparent 50%),
-      radial-gradient(at 100% 100%, hsla(199, 89%, 48%, 0.05) 0px, transparent 50%);
+      radial-gradient(at 0% 0%, hsla(199, 89%, 48%, 0.1) 0px, transparent 50%),
+      radial-gradient(at 100% 100%, hsla(222, 47%, 8%, 0.6) 0px, transparent 60%);
     background-attachment: fixed;
   }
 
@@ -115,39 +95,37 @@ html {
   h5,
   h6 {
     font-family: 'Outfit', system-ui, sans-serif;
-    font-weight: 800;
-    letter-spacing: -0.03em;
-  }
-
-  h1 {
-    @apply text-3xl sm:text-4xl md:text-5xl lg:text-6xl;
-    line-height: 1.1;
+    font-weight: 900;
+    letter-spacing: -0.04em;
+    text-shadow: 0 4px 15px rgba(0, 0, 0, 0.8);
   }
 
   label,
   .label {
     font-family: 'Inter', system-ui, sans-serif;
-    font-weight: 600;
-    letter-spacing: 0.02em;
-    @apply text-muted-foreground uppercase text-[11px];
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    @apply text-slate-300 uppercase text-[12px]; /* Brighter and slightly larger */
   }
 
   ::selection {
-    background: hsla(221, 83%, 53%, 0.2);
-    color: inherit;
+    background: hsla(199, 89%, 48%, 0.4);
+    color: white;
   }
 }
 
 @layer components {
 
-  /* ════ GLASS PANELS ════ */
+  /* ════ PREMIUM DARK CARDS ════ */
   .three-d-card {
-    @apply relative overflow-hidden rounded-3xl bg-card border border-border shadow-soft;
+    @apply relative overflow-hidden rounded-[1.5rem] bg-card border border-white/10 shadow-soft;
   }
 
   .glass-premium {
     @apply three-d-card;
-    background: linear-gradient(135deg, rgba(255, 255, 255, 1) 0%, rgba(248, 250, 252, 1) 100%);
+    background: linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.9) 100%);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
   }
 
   .glass-panel {
