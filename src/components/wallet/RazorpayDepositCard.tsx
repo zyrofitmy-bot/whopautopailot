@@ -143,18 +143,19 @@ export default function RazorpayDepositCard() {
             </div>
 
             <div className="space-y-4">
-                <label className="text-[12px] font-black text-slate-400 uppercase tracking-widest block ml-1">Custom Amount</label>
+                <label className="text-[14px] font-black text-slate-400 uppercase tracking-widest block ml-1">Custom Amount (INR)</label>
                 <div className="relative">
-                    <span className="absolute left-6 top-1/2 -translate-y-1/2 text-cyan-500 font-black text-4xl">₹</span>
+                    <span className="absolute left-8 top-1/2 -translate-y-1/2 text-cyan-500 font-black text-5xl">₹</span>
                     <Input
                         type="number"
                         value={inrAmount}
                         onChange={(e) => setInrAmount(e.target.value)}
-                        className="pl-16 h-28 rounded-[2rem] font-black text-5xl text-white bg-slate-950 border-slate-800 focus:border-cyan-500 transition-all placeholder:text-slate-800 shadow-inner"
-                        placeholder="20"
+                        style={{ backgroundColor: '#000', color: '#fff', fontSize: '3.5rem', height: '120px' }}
+                        className="pl-20 rounded-[2.5rem] font-black border-4 border-slate-800 focus:border-cyan-500 transition-all placeholder:text-slate-900 shadow-[inset_0_4px_10px_rgba(0,0,0,1)] w-full block"
+                        placeholder="0"
                     />
                     {usdCredit > 0 && (
-                        <div className="absolute right-6 top-1/2 -translate-y-1/2 font-black text-cyan-400 bg-cyan-500/10 px-4 py-2 rounded-xl text-xl border border-cyan-500/20">
+                        <div className="absolute right-8 top-1/2 -translate-y-1/2 font-black text-cyan-400 bg-cyan-500/10 px-6 py-3 rounded-2xl text-2xl border-2 border-cyan-500/30">
                             ≈ ${usdCredit}
                         </div>
                     )}
@@ -164,57 +165,58 @@ export default function RazorpayDepositCard() {
             <Button
               onClick={() => setStep('pay_and_submit')}
               disabled={!inrAmount || Number(inrAmount) < 20}
-              className="w-full h-24 rounded-[2rem] gap-4 text-2xl font-black bg-cyan-500 hover:bg-cyan-400 text-black shadow-[0_15px_40px_rgba(6,182,212,0.4)] transition-all active:scale-95"
+              className="w-full h-28 rounded-[2.5rem] gap-6 text-3xl font-black bg-cyan-500 hover:bg-cyan-400 text-black shadow-[0_20px_50px_rgba(6,182,212,0.5)] transition-all active:scale-95 uppercase italic"
             >
-              PAY ₹{inrAmount}
-              <ArrowRight className="h-8 w-8" />
+              Confirm ₹{inrAmount}
+              <ArrowRight className="h-10 w-10 stroke-[3]" />
             </Button>
           </div>
         )}
 
         {/* STEP 2: PAYMENT & VERIFICATION (EXTREMELY VISIBLE) */}
         {step === 'pay_and_submit' && (
-          <div className="p-10 space-y-8 animate-in slide-in-from-right-10 duration-500">
+          <div className="p-10 space-y-10 animate-in slide-in-from-right-10 duration-500">
             
             {/* INSTRUCTIONS SCREEN */}
-            <div className="bg-blue-600/10 border-2 border-blue-500/30 rounded-[2rem] p-8 space-y-6">
+            <div className="bg-blue-600/10 border-4 border-blue-500/40 rounded-[2.5rem] p-10 space-y-8">
                 <div className="flex items-center justify-between">
-                    <h3 className="font-black text-white text-xl uppercase italic">Step 1: Pay</h3>
-                    <div className="bg-blue-600 text-white font-black px-4 py-1.5 rounded-xl text-lg shadow-lg">₹{inrAmount}</div>
+                    <h3 className="font-black text-white text-2xl uppercase italic tracking-tighter">Step 1: Transfer</h3>
+                    <div className="bg-blue-600 text-white font-black px-6 py-2 rounded-2xl text-2xl shadow-2xl">₹{inrAmount}</div>
                 </div>
                 <Button
                     onClick={() => window.open(RAZORPAY_PAGE_URL, '_blank')}
-                    className="w-full h-20 rounded-2xl gap-4 text-xl font-black bg-blue-600 hover:bg-blue-500 text-white shadow-xl transition-all"
+                    className="w-full h-24 rounded-2xl gap-5 text-2xl font-black bg-blue-600 hover:bg-blue-500 text-white shadow-[0_15px_30px_rgba(37,99,235,0.4)] transition-all"
                 >
-                    <ExternalLink className="h-6 w-6" />
+                    <ExternalLink className="h-8 w-8" />
                     CLICK TO PAY NOW
                 </Button>
-                <div className="flex items-start gap-4 p-4 bg-black/40 rounded-2xl border border-white/5">
-                    <Info className="h-6 w-6 text-blue-400 mt-1 flex-shrink-0" />
-                    <p className="text-[12px] text-blue-100 font-bold leading-relaxed">
-                        After paying, please copy the <span className="text-white underline">12-Digit UTR Number</span> from your app history.
+                <div className="flex items-start gap-5 p-6 bg-black/60 rounded-3xl border-2 border-white/10">
+                    <Info className="h-8 w-8 text-blue-400 mt-1 flex-shrink-0" />
+                    <p className="text-[14px] text-blue-100 font-black leading-relaxed uppercase tracking-tight">
+                        After payment, copy the <span className="text-white underline decoration-2 decoration-blue-500 underline-offset-4">12-Digit UTR Number</span>.
                     </p>
                 </div>
             </div>
 
             {/* VERIFICATION FORM */}
-            <div className="space-y-8">
-                <h3 className="font-black text-white text-xl uppercase italic ml-2">Step 2: Submit Proof</h3>
+            <div className="space-y-10">
+                <h3 className="font-black text-white text-2xl uppercase italic ml-2 tracking-tighter">Step 2: Verification</h3>
                 
-                <div className="space-y-6">
-                    <div className="space-y-3">
-                        <label className="text-[12px] font-black text-slate-400 uppercase tracking-widest ml-2">Transaction ID / UTR *</label>
+                <div className="space-y-8">
+                    <div className="space-y-4">
+                        <label className="text-[14px] font-black text-slate-400 uppercase tracking-widest ml-2">Transaction ID / UTR *</label>
                         <Input
                             placeholder="Enter 12-digit UTR"
                             value={paymentId}
                             onChange={(e) => setPaymentId(e.target.value)}
-                            className="h-16 rounded-2xl bg-black border-2 border-slate-700 font-black text-white px-6 text-xl focus:border-cyan-500 shadow-lg"
+                            style={{ backgroundColor: '#000', color: '#fff' }}
+                            className="h-20 rounded-2xl border-4 border-slate-800 font-black text-white px-8 text-2xl focus:border-cyan-500 shadow-2xl w-full block"
                         />
                     </div>
 
-                    <div className="space-y-3">
-                        <label className="text-[12px] font-black text-slate-400 uppercase tracking-widest ml-2">Screenshot (Must be clear)</label>
-                        <div className="relative h-24 rounded-2xl border-2 border-dashed border-slate-700 bg-black flex items-center justify-center group overflow-hidden transition-colors hover:border-cyan-500/50">
+                    <div className="space-y-4">
+                        <label className="text-[14px] font-black text-slate-400 uppercase tracking-widest ml-2">Payment Screenshot</label>
+                        <div className="relative h-32 rounded-3xl border-4 border-dashed border-slate-800 bg-black flex items-center justify-center group overflow-hidden transition-all hover:border-cyan-500 shadow-inner">
                             <Input
                                 type="file"
                                 accept="image/*"
@@ -222,17 +224,19 @@ export default function RazorpayDepositCard() {
                                 className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
                             />
                             {screenshotPreview ? (
-                                <div className="flex items-center gap-5 w-full px-6">
+                                <div className="flex items-center gap-6 w-full px-8">
                                     <div className="relative">
-                                        <img src={screenshotPreview} alt="Proof" className="w-14 h-14 rounded-xl border-2 border-cyan-500 shadow-xl object-cover" />
-                                        <CheckCircle2 className="absolute -top-2 -right-2 h-6 w-6 text-emerald-500 bg-black rounded-full" />
+                                        <img src={screenshotPreview} alt="Proof" className="w-20 h-20 rounded-2xl border-4 border-cyan-500 shadow-2xl object-cover" />
+                                        <div className="absolute -top-3 -right-3 bg-emerald-500 text-black rounded-full p-1 border-2 border-black">
+                                            <CheckCircle2 className="h-6 w-6" />
+                                        </div>
                                     </div>
-                                    <p className="text-sm font-black text-cyan-400 truncate flex-1 uppercase tracking-tighter">{screenshot?.name}</p>
+                                    <p className="text-lg font-black text-cyan-400 truncate flex-1 uppercase tracking-tighter italic">{screenshot?.name}</p>
                                 </div>
                             ) : (
-                                <div className="flex items-center gap-4 opacity-50 group-hover:opacity-100 transition-opacity">
-                                    <ImagePlus className="h-8 w-8 text-white" />
-                                    <span className="text-[11px] font-black text-white uppercase tracking-[0.2em]">Upload Payment Image</span>
+                                <div className="flex flex-col items-center gap-2 opacity-50 group-hover:opacity-100 transition-opacity">
+                                    <ImagePlus className="h-10 w-10 text-white" />
+                                    <span className="text-[12px] font-black text-white uppercase tracking-[0.3em]">Attach Payment Image</span>
                                 </div>
                             )}
                         </div>
@@ -242,10 +246,10 @@ export default function RazorpayDepositCard() {
                 <Button
                     onClick={handleSubmitProof}
                     disabled={loading || !paymentId.trim()}
-                    className="w-full h-24 rounded-[2rem] gap-4 text-2xl font-black bg-emerald-500 hover:bg-emerald-400 text-black shadow-[0_20px_40px_rgba(16,185,129,0.3)] transition-all"
+                    className="w-full h-28 rounded-[2.5rem] gap-6 text-3xl font-black bg-emerald-500 hover:bg-emerald-400 text-black shadow-[0_25px_50px_rgba(16,185,129,0.4)] transition-all uppercase italic"
                 >
-                    {loading ? <Loader2 className="h-8 w-8 animate-spin" /> : <ShieldCheck className="h-8 w-8" />}
-                    {loading ? 'SUBMITTING...' : 'CONFIRM DEPOSIT'}
+                    {loading ? <Loader2 className="h-10 w-10 animate-spin" /> : <ShieldCheck className="h-10 w-10 stroke-[3]" />}
+                    {loading ? 'Processing...' : 'Verify Deposit'}
                 </Button>
             </div>
 
