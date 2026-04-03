@@ -75,7 +75,9 @@ export default function RazorpayDepositCard() {
       let screenshotUrl: string | null = null;
       if (screenshot) {
         const ext = screenshot.name.split('.').pop() || 'jpg';
-        const path = `deposits/${user?.id}/${Date.now()}.${ext}`;
+        // USE UID as the first segment to match storage RLS policy
+        const path = `${user?.id}/${Date.now()}.${ext}`;
+        
         const { data: uploadData, error: uploadErr } = await supabase.storage
           .from('payment-proofs')
           .upload(path, screenshot, { upsert: true });
@@ -85,8 +87,14 @@ export default function RazorpayDepositCard() {
         screenshotUrl = urlData.publicUrl;
       }
 
+      // Ensure user ID is present to avoid RLS violations
+      const userId = user?.id || profile?.user_id;
+      if (!userId) {
+        throw new Error('User authentication session expired. Please refresh the page.');
+      }
+
       const { error: dbErr } = await supabase.from('transactions').insert({
-        user_id: user?.id,
+        user_id: userId,
         type: 'deposit',
         amount: usdCredit,
         balance_after: 0,
