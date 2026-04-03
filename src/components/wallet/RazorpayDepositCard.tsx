@@ -61,8 +61,8 @@ export default function RazorpayDepositCard() {
   };
 
   const handleSubmitProof = async () => {
-    if (!inrAmount || Number(inrAmount) < 20) {
-      toast({ title: 'Invalid amount', description: 'Minimum deposit is ₹20', variant: 'destructive' });
+    if (!inrAmount || Number(inrAmount) < 30) {
+      toast({ title: 'Invalid amount', description: 'Minimum deposit is ₹30', variant: 'destructive' });
       return;
     }
     if (!paymentId.trim() || paymentId.length < 8) {
@@ -222,13 +222,13 @@ export default function RazorpayDepositCard() {
                   </div>
                   <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] flex items-center gap-2 justify-center">
                     <Info className="h-3 w-3" />
-                    Minimum Deposit: ₹100 • 1 USD ≈ ₹{rates['INR'] || 83.5}
+                    Minimum Deposit: ₹30 • 1 USD ≈ ₹{rates['INR'] || 83.5}
                   </p>
               </div>
 
               <Button
                 onClick={() => setStep('pay_and_submit')}
-                disabled={!inrAmount || Number(inrAmount) < 100}
+                disabled={!inrAmount || Number(inrAmount) < 30}
                 className="group relative w-full h-28 rounded-[2.5rem] gap-6 text-3xl font-[1000] bg-cyan-500 hover:bg-cyan-400 text-black shadow-[0_25px_60px_-10px_rgba(6,182,212,0.7)] transition-all active:scale-95 uppercase italic overflow-hidden"
               >
                 <div className="relative z-10 flex items-center gap-4">
