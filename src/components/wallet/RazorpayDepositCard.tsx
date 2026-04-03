@@ -150,8 +150,8 @@ export default function RazorpayDepositCard() {
                   </div>
                 </div>
                 <div>
-                  <h1 className="text-4xl md:text-5xl font-[1000] text-white tracking-tighter italic uppercase leading-none">Wallet</h1>
-                  <p className="text-cyan-400 font-bold text-xs uppercase tracking-[0.4em] mt-2 flex items-center gap-2">
+                  <h1 className="text-3xl md:text-4xl font-[1000] text-white tracking-tighter italic uppercase leading-none">Wallet</h1>
+                  <p className="text-cyan-400 font-bold text-[10px] uppercase tracking-[0.4em] mt-1.5 flex items-center gap-2">
                     <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
                     Instant Top-up Indian Gateway
                   </p>
@@ -177,14 +177,14 @@ export default function RazorpayDepositCard() {
                           <button
                               key={amt}
                               onClick={() => setInrAmount(String(amt))}
-                              className={`group relative py-6 rounded-3xl text-2xl font-black transition-all border-2 overflow-hidden ${
+                              className={`group relative py-4 rounded-2xl text-lg font-black transition-all border-2 overflow-hidden ${
                                   inrAmount === String(amt)
                                   ? 'bg-cyan-500 border-cyan-500 text-black shadow-[0_20px_40px_-5px_rgba(6,182,212,0.5)] scale-[1.02]'
                                   : 'bg-white/5 border-white/5 text-slate-400 hover:border-white/20 hover:text-white hover:bg-white/10'
                               }`}
                           >
                               <div className="relative z-10 flex flex-col items-center">
-                                <span className={`text-xs uppercase tracking-tighter mb-1 font-bold ${inrAmount === String(amt) ? 'text-black/60' : 'text-slate-500'}`}>INR</span>
+                                <span className={`text-[9px] uppercase tracking-tighter mb-0.5 font-bold ${inrAmount === String(amt) ? 'text-black/60' : 'text-slate-500'}`}>INR</span>
                                 ₹{amt}
                               </div>
                               {inrAmount === String(amt) && (
@@ -210,13 +210,13 @@ export default function RazorpayDepositCard() {
                           value={inrAmount}
                           onChange={(e) => setInrAmount(e.target.value)}
                           placeholder="0.00"
-                          className="h-32 pl-24 md:pl-32 rounded-[2.5rem] font-black text-5xl md:text-7xl !bg-[#020617] !text-white border-4 border-white/5 focus-visible:ring-0 focus-visible:border-cyan-500 transition-all placeholder:text-slate-600 shadow-[inset_0_4px_30px_rgba(0,0,0,1)] w-full !opacity-100 placeholder-shown:italic"
+                          className="h-24 pl-24 md:pl-32 rounded-[2rem] font-black text-4xl md:text-5xl !bg-[#020617] !text-white border-4 border-white/5 focus-visible:ring-0 focus-visible:border-cyan-500 transition-all placeholder:text-slate-600 shadow-[inset_0_4px_30px_rgba(0,0,0,1)] w-full !opacity-100 placeholder-shown:italic"
                       />
 
                       {usdCredit > 0 && (
                           <div className="absolute right-10 top-1/2 -translate-y-1/2 text-right">
-                              <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">RECEIVE (USD)</div>
-                              <div className="font-black text-3xl text-emerald-400 italic">≈ ${usdCredit}</div>
+                              <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-0.5">RECEIVE (USD)</div>
+                              <div className="font-black text-2xl text-emerald-400 italic">≈ ${usdCredit}</div>
                           </div>
                       )}
                   </div>
@@ -229,11 +229,11 @@ export default function RazorpayDepositCard() {
               <Button
                 onClick={() => setStep('pay_and_submit')}
                 disabled={!inrAmount || Number(inrAmount) < 30}
-                className="group relative w-full h-28 rounded-[2.5rem] gap-6 text-3xl font-[1000] bg-cyan-500 hover:bg-cyan-400 text-black shadow-[0_25px_60px_-10px_rgba(6,182,212,0.7)] transition-all active:scale-95 uppercase italic overflow-hidden"
+                className="group relative w-full h-20 rounded-[2rem] gap-4 text-xl font-[1000] bg-cyan-500 hover:bg-cyan-400 text-black shadow-[0_20px_50px_-10px_rgba(6,182,212,0.6)] transition-all active:scale-95 uppercase italic overflow-hidden"
               >
-                <div className="relative z-10 flex items-center gap-4">
+                <div className="relative z-10 flex items-center gap-3">
                   PROCEED TO PAY ₹{inrAmount}
-                  <ArrowRight className="h-10 w-10 stroke-[3] group-hover:translate-x-2 transition-transform" />
+                  <ArrowRight className="h-8 w-8 stroke-[3] group-hover:translate-x-2 transition-transform" />
                 </div>
                 <div className="absolute top-0 -left-full w-1/2 h-full bg-gradient-to-r from-transparent via-white/30 to-transparent skew-x-[45deg] group-hover:animate-[shimmer_1.5s_infinite]" />
               </Button>
@@ -308,7 +308,7 @@ export default function RazorpayDepositCard() {
                                 placeholder="Enter 12-digit ID"
                                 value={paymentId}
                                 onChange={(e) => setPaymentId(e.target.value)}
-                                className="h-24 pl-16 rounded-[2rem] border-2 border-white/10 bg-[#020617] font-black text-white px-10 text-3xl focus-visible:ring-0 focus-visible:border-emerald-500 shadow-2xl w-full !opacity-100 uppercase"
+                                className="h-16 pl-16 rounded-2xl border-2 border-white/10 bg-[#020617] font-black text-white px-8 text-xl focus-visible:ring-0 focus-visible:border-emerald-500 shadow-2xl w-full !opacity-100 uppercase"
                             />
                           </div>
                       </div>
@@ -350,16 +350,16 @@ export default function RazorpayDepositCard() {
                   <Button
                       onClick={handleSubmitProof}
                       disabled={loading || !paymentId.trim()}
-                      className="w-full h-28 rounded-[2.5rem] gap-6 text-3xl font-[1000] bg-emerald-500 hover:bg-emerald-400 text-black shadow-[0_30px_70px_-15px_rgba(16,185,129,0.7)] transition-all active:scale-95 uppercase italic overflow-hidden"
+                      className="w-full h-16 rounded-2xl gap-4 text-xl font-[1000] bg-emerald-500 hover:bg-emerald-400 text-black shadow-[0_20px_50px_-10px_rgba(16,185,129,0.5)] transition-all active:scale-95 uppercase italic overflow-hidden"
                   >
                       {loading ? (
-                        <div className="flex items-center gap-4">
-                          <Loader2 className="h-10 w-10 animate-spin" />
+                        <div className="flex items-center gap-3">
+                          <Loader2 className="h-6 w-6 animate-spin" />
                           <span>Processing...</span>
                         </div>
                       ) : (
-                        <div className="flex items-center gap-4">
-                          <ShieldCheck className="h-10 w-10 stroke-[3]" />
+                        <div className="flex items-center gap-3">
+                          <ShieldCheck className="h-6 w-6 stroke-[3]" />
                           <span>Verify Deposit</span>
                         </div>
                       )}
@@ -387,16 +387,16 @@ export default function RazorpayDepositCard() {
               </div>
 
               <div className="space-y-6">
-                <div className="bg-emerald-500 text-black px-8 py-2 rounded-full inline-block text-sm font-black uppercase tracking-[0.4em] rotate-1">RECEIVED</div>
-                <h3 className="text-7xl md:text-9xl font-[1000] text-white tracking-tightest italic uppercase leading-none">Done!</h3>
-                <p className="text-2xl font-black text-emerald-400 uppercase tracking-widest italic animate-bounce">Credential Pending...</p>
+                <div className="bg-emerald-500 text-black px-6 py-1 rounded-full inline-block text-[10px] font-black uppercase tracking-[0.4em] rotate-1">RECEIVED</div>
+                <h3 className="text-5xl md:text-6xl font-[1000] text-white tracking-tightest italic uppercase leading-none">Done!</h3>
+                <p className="text-lg font-black text-emerald-400 uppercase tracking-widest italic animate-bounce mt-2">Credential Pending...</p>
               </div>
 
               <div className="bg-white/5 rounded-[3rem] p-12 border border-white/10 text-xl text-slate-300 font-bold leading-relaxed shadow-2xl">
                  Verify success! Your balance will be updated automatically within <span className="text-white underline decoration-emerald-500">5-10 minutes</span>.
               </div>
 
-              <Button onClick={() => setStep('amount')} className="w-full h-24 rounded-[2rem] bg-white text-black font-[1000] text-2xl hover:scale-[1.02] shadow-[0_20px_50px_rgba(255,255,255,0.2)] transition-all uppercase">
+              <Button onClick={() => setStep('amount')} className="w-full h-16 rounded-2xl bg-white text-black font-[1000] text-lg hover:scale-[1.02] shadow-[0_15px_40px_rgba(255,255,255,0.1)] transition-all uppercase">
                   Let's Continue
               </Button>
             </div>
