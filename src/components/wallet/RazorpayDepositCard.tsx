@@ -6,7 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import {
   Loader2, Zap, IndianRupee, ExternalLink, ArrowLeft,
   CheckCircle2, ShieldCheck, Upload, Send, Sparkles,
-  Clock, ImagePlus, ArrowRight, MessageCircle, Wallet
+  Clock, ImagePlus, ArrowRight, MessageCircle, Wallet,
+  Info, Smartphone, Copy
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
@@ -30,8 +31,7 @@ export default function RazorpayDepositCard() {
   const [loading, setLoading] = useState(false);
   const [screenshot, setScreenshot] = useState<File | null>(null);
   const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
-  const [isSubmitted, setIsSubmitted] = useState(false);
-  const [step, setStep] = useState<'amount' | 'pay' | 'proof' | 'done'>('amount');
+  const [step, setStep] = useState<'amount' | 'payment' | 'done'>('amount');
 
   useEffect(() => {
     if (profile?.full_name) setFullName(profile.full_name);
@@ -96,7 +96,7 @@ export default function RazorpayDepositCard() {
       }
 
       const descriptionObj = {
-        text: `Paid: \u20b9${inrAmount} | Name: ${fullName} | Email: ${email} | Credit: $${usdCredit}`,
+        text: `Paid: ₹${inrAmount} | Name: ${fullName} | Email: ${email} | Credit: $${usdCredit}`,
         screenshot_url: screenshotUrl,
       };
 
@@ -120,28 +120,23 @@ export default function RazorpayDepositCard() {
       const appUrl = window.location.origin;
       supabase.functions.invoke('send-telegram-notification', {
         body: {
-          message: `<b>\ud83d\udea8 NEW DEPOSIT REQUEST</b>\n\n` +
-            `\ud83d\udc64 <b>Name:</b> ${fullName || 'N/A'}\n` +
-            `\ud83d\udce7 <b>Email:</b> ${email || 'N/A'}\n` +
-            `\ud83d\udcb0 <b>Paid:</b> \u20b9${inrAmount}\n` +
-            `\ud83d\udcb5 <b>Credit:</b> $${usdCredit}\n` +
-            `\ud83c\udd94 <b>UTR:</b> <code>${paymentId}</code>\n\n` +
-            `<a href="${appUrl}/admin/deposits">\ud83d\udd17 Open Admin Panel</a>`,
+          message: `<b>🚨 NEW DEPOSIT REQUEST</b>\n\n` +
+            `👤 <b>Name:</b> ${fullName || 'N/A'}\n` +
+            `📧 <b>Email:</b> ${email || 'N/A'}\n` +
+            `💰 <b>Paid:</b> ₹${inrAmount}\n` +
+            `💵 <b>Credit:</b> $${usdCredit}\n` +
+            `🆔 <b>UTR:</b> <code>${paymentId}</code>\n\n` +
+            `<a href="${appUrl}/admin/deposits">🔗 Open Admin Panel</a>`,
           ...(screenshotUrl ? { photo_url: screenshotUrl } : {}),
         },
       }).catch(console.error);
 
-      setIsSubmitted(true);
       setStep('done');
-      toast({ title: '\u2705 Payment Proof Received!', description: 'Your balance will be credited within minutes.' });
+      toast({ title: 'Success!', description: 'Your deposit proof has been submitted.' });
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
     } catch (err: any) {
       console.error('Submission failed:', err);
-      toast({ 
-        title: 'Submission Failed', 
-        description: err.message || 'An unexpected error occurred. Please try again.', 
-        variant: 'destructive' 
-      });
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
     } finally {
       setLoading(false);
     }
@@ -153,78 +148,53 @@ export default function RazorpayDepositCard() {
     setPaymentId('');
     setScreenshot(null);
     setScreenshotPreview(null);
-    setIsSubmitted(false);
   };
 
   return (
     <div className="relative group/card">
-      <div className="absolute -inset-1 bg-gradient-to-br from-emerald-500/20 via-blue-500/10 to-purple-500/20 rounded-[2.5rem] blur-2xl opacity-0 group-hover/card:opacity-100 transition duration-1000"></div>
+      <div className="absolute -inset-1 bg-gradient-to-br from-indigo-500/20 via-emerald-500/10 to-blue-500/20 rounded-[2.5rem] blur-2xl opacity-100 transition duration-1000"></div>
 
-      <div className="three-d-card overflow-hidden mt-6 relative border border-white/10">
+      <div className="three-d-card overflow-hidden mt-6 relative border border-white/10 bg-[#0A0A0B]/80 backdrop-blur-xl">
         {/* Header */}
         <div className="p-8 pb-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-blue-500/20 flex items-center justify-center border border-emerald-500/30 shadow-inner">
-                <IndianRupee className="h-6 w-6 text-emerald-400" />
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-[0_8px_20px_rgba(16,185,129,0.3)]">
+                <IndianRupee className="h-7 w-7 text-black" />
               </div>
               <div>
-                <h2 className="text-2xl font-black tracking-tighter text-white">UPI Payment</h2>
-                <p className="text-xs text-emerald-400 font-bold uppercase tracking-widest opacity-80">Secured Gateway • Instant Processing</p>
+                <h2 className="text-2xl font-black tracking-tighter text-white">Deposit Funds</h2>
+                <p className="text-xs text-emerald-400 font-bold uppercase tracking-widest opacity-80 flex items-center gap-2">
+                   <Clock className="h-3 w-3" /> Processing: 5-10 mins
+                </p>
               </div>
             </div>
-            <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-400 border-emerald-500/20 py-2 px-4 rounded-xl font-black uppercase tracking-[0.2em] shadow-sm">
+            <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 py-2 px-4 rounded-xl font-black uppercase tracking-[0.1em] shadow-sm">
               <ShieldCheck className="h-3.5 w-3.5 mr-2" />
-              Verified Payment
+              Verified Service
             </Badge>
           </div>
-
-          {/* Step Indicator */}
-          {step !== 'done' && (
-            <div className="flex items-center gap-2 mt-6 px-2">
-              {['amount', 'pay', 'proof'].map((s, i) => (
-                <div key={s} className="flex items-center gap-2 flex-1">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black transition-all duration-500 ${
-                    step === s ? 'bg-emerald-500 text-black scale-110 shadow-[0_0_20px_rgba(16,185,129,0.4)]' :
-                    ['amount', 'pay', 'proof'].indexOf(step) > i ? 'bg-emerald-500/20 text-emerald-400' :
-                    'bg-white/5 text-white/30'
-                  }`}>
-                    {['amount', 'pay', 'proof'].indexOf(step) > i ? <CheckCircle2 className="h-4 w-4" /> : i + 1}
-                  </div>
-                  {i < 2 && (
-                    <div className={`flex-1 h-[2px] rounded-full transition-all duration-500 ${
-                      ['amount', 'pay', 'proof'].indexOf(step) > i ? 'bg-emerald-500/40' : 'bg-white/5'
-                    }`} />
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
         </div>
 
         {/* === STEP 1: ENTER AMOUNT === */}
         {step === 'amount' && (
-          <div className="p-8 pt-4 space-y-6">
-            <div className="p-6 rounded-3xl bg-gradient-to-br from-emerald-500/5 to-blue-500/5 border border-emerald-500/10 space-y-5">
-              <div className="flex gap-4 items-center">
-                <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 flex items-center justify-center shrink-0">
-                  <Wallet className="h-6 w-6 text-emerald-400" />
+          <div className="p-8 pt-4 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="p-6 rounded-3xl bg-white/[0.02] border border-white/5 space-y-6">
+                <div className="flex items-center gap-4 text-emerald-400/80 mb-2">
+                    <Info className="h-4 w-4" />
+                    <p className="text-[11px] font-black uppercase tracking-widest">Select an amount to add</p>
                 </div>
-                <div className="text-xs text-emerald-200/70 leading-relaxed font-extrabold uppercase tracking-tight">
-                  Enter the amount you want to deposit. Funds are processed and credited instantly after verification.
-                </div>
-              </div>
 
               {/* Quick Amount Buttons */}
-              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-                {QUICK_AMOUNTS.map(amt => (
+              <div className="grid grid-cols-3 gap-3">
+                {[100, 500, 1000].map(amt => (
                   <button
                     key={amt}
                     onClick={() => setInrAmount(String(amt))}
-                    className={`py-3 rounded-xl text-sm font-black transition-all duration-300 border ${
+                    className={`py-4 rounded-2xl text-lg font-black transition-all duration-300 border-2 ${
                       inrAmount === String(amt)
-                        ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.15)]'
-                        : 'bg-white/[0.02] border-white/10 text-white/60 hover:bg-white/5 hover:border-white/20'
+                        ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.2)]'
+                        : 'bg-white/[0.01] border-white/5 text-white/40 hover:bg-white/5 hover:border-white/10'
                     }`}
                   >
                     ₹{amt}
@@ -232,20 +202,19 @@ export default function RazorpayDepositCard() {
                 ))}
               </div>
 
-              <div className="space-y-2">
-                <label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground ml-1">Custom Amount (INR)</label>
+              <div className="space-y-4">
                 <div className="relative group">
-                  <span className="absolute left-6 top-1/2 -translate-y-1/2 text-emerald-400 font-black text-2xl">₹</span>
+                  <span className="absolute left-7 top-1/2 -translate-y-1/2 text-emerald-400 font-bold text-4xl">₹</span>
                   <Input
                     type="number"
                     value={inrAmount}
                     onChange={(e) => setInrAmount(e.target.value)}
-                    className="pl-12 input-3d h-20 font-black text-2xl text-white bg-white/5 border-white/10 rounded-[1.5rem]"
+                    className="pl-14 input-3d h-28 font-black text-4xl text-white bg-white/[0.02] border-white/10 rounded-[2rem] focus:border-emerald-500/50 shadow-inner"
                     placeholder="Min: 20"
                   />
                   {usdCredit > 0 && (
-                    <div className="absolute right-6 top-1/2 -translate-y-1/2 font-black text-emerald-400 bg-emerald-500/10 px-4 py-1.5 rounded-full text-sm border border-emerald-500/20">
-                      ≈ ${usdCredit}
+                    <div className="absolute right-7 top-1/2 -translate-y-1/2 font-black text-emerald-400 bg-emerald-500/10 px-6 py-3 rounded-2xl text-xl border border-emerald-500/20">
+                      = ${usdCredit}
                     </div>
                   )}
                 </div>
@@ -253,259 +222,161 @@ export default function RazorpayDepositCard() {
             </div>
 
             <Button
-              onClick={() => setStep('pay')}
+              onClick={() => setStep('payment')}
               disabled={!inrAmount || Number(inrAmount) < 20}
-              className="w-full h-20 rounded-3xl gap-4 text-xl font-black bg-gradient-to-r from-emerald-500 to-emerald-600 text-black hover:from-emerald-400 hover:to-emerald-500 shadow-[0_8px_30px_rgba(16,185,129,0.25)] transition-all duration-300 hover:shadow-[0_8px_40px_rgba(16,185,129,0.4)] hover:scale-[1.02]"
+              className="w-full h-24 rounded-[2.5rem] gap-4 text-2xl font-black bg-gradient-to-r from-emerald-500 to-emerald-600 text-black hover:from-emerald-400 hover:to-emerald-500 shadow-[0_20px_40px_-10px_rgba(16,185,129,0.4)] transition-all duration-300 hover:translate-y-[-2px] active:scale-95"
             >
-              <ArrowRight className="h-6 w-6" />
-              CONTINUE — PAY ₹{inrAmount || '0'}
+              CONTINUE TO PAY ₹{inrAmount}
+              <ArrowRight className="h-7 w-7" />
             </Button>
+            
+            <p className="text-center text-[10px] font-black text-white/20 uppercase tracking-[0.4em]">100% Secure Payment Gateways</p>
           </div>
         )}
 
-        {/* === STEP 2: PAY VIA UPI === */}
-        {step === 'pay' && (
-          <div className="p-8 pt-4 space-y-5">
-            <div className="p-6 rounded-3xl bg-gradient-to-br from-blue-500/5 to-indigo-500/5 border border-blue-500/10 space-y-4">
-              <div className="text-center space-y-2">
-                <div className="w-16 h-16 rounded-2xl bg-blue-500/20 flex items-center justify-center mx-auto border border-blue-500/30">
-                  <Zap className="h-8 w-8 text-blue-400" />
-                </div>
-                <h3 className="text-xl font-black text-white">Pay ₹{inrAmount} via UPI</h3>
-                <p className="text-xs text-muted-foreground font-bold uppercase tracking-wider">Click the button below to open the payment portal</p>
-              </div>
-
-              <div className="bg-white/[0.03] rounded-2xl p-4 border border-white/5">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground font-bold">Amount</span>
-                  <span className="font-black text-white">₹{inrAmount}</span>
-                </div>
-                <div className="h-px bg-white/5 my-3" />
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground font-bold">You'll receive</span>
-                  <span className="font-black text-emerald-400">${usdCredit}</span>
-                </div>
-                <div className="h-px bg-white/5 my-3" />
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground font-bold">Processing</span>
-                  <span className="font-black text-blue-400 flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> ~5-10 Minutes</span>
-                </div>
-              </div>
-            </div>
-
-            <Button
-              onClick={() => {
-                window.open(RAZORPAY_PAGE_URL, '_blank');
-                // Auto move to proof step after a small delay
-                setTimeout(() => setStep('proof'), 3000);
-              }}
-              className="w-full h-20 rounded-3xl gap-4 text-xl font-black bg-gradient-to-r from-blue-500 to-indigo-600 text-white hover:from-blue-400 hover:to-indigo-500 shadow-[0_8px_30px_rgba(59,130,246,0.25)] transition-all hover:shadow-[0_8px_40px_rgba(59,130,246,0.4)] hover:scale-[1.02]"
-            >
-              <ExternalLink className="h-6 w-6" />
-              OPEN PAYMENT PORTAL
-            </Button>
-
-            <button
-              onClick={() => setStep('proof')}
-              className="text-xs uppercase tracking-[0.2em] text-blue-400/70 hover:text-blue-400 transition-colors block mx-auto font-black flex items-center gap-2"
-            >
-              Already Paid? <ArrowRight className="h-3 w-3" /> Submit Proof
-            </button>
-
-            <button
-              onClick={() => setStep('amount')}
-              className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground hover:text-white transition-colors block mx-auto font-black flex items-center gap-2"
-            >
-              <ArrowLeft className="h-3 w-3" /> Change Amount
-            </button>
-          </div>
-        )}
-
-        {/* === STEP 3: SUBMIT PROOF === */}
-        {step === 'proof' && (
-          <div className="p-8 pt-4 space-y-5">
-            <div className="p-5 rounded-2xl bg-gradient-to-r from-emerald-500/5 to-blue-500/5 border border-emerald-500/10">
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center shrink-0 mt-0.5">
-                  <Sparkles className="h-5 w-5 text-emerald-400" />
-                </div>
-                <div>
-                  <p className="text-sm font-black text-white mb-1">Almost Done!</p>
-                  <p className="text-[11px] text-muted-foreground leading-relaxed font-bold">
-                    Paste your <span className="text-emerald-400">UTR / Transaction ID</span> and optionally upload a payment screenshot for faster processing.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Summary Badge */}
-            <div className="flex items-center justify-center gap-3 py-3 px-6 rounded-2xl bg-white/[0.03] border border-white/5">
-              <span className="text-muted-foreground text-xs font-bold">Depositing</span>
-              <span className="text-lg font-black text-white">₹{inrAmount}</span>
-              <ArrowRight className="h-4 w-4 text-muted-foreground" />
-              <span className="text-lg font-black text-emerald-400">${usdCredit}</span>
-            </div>
-
-            {/* UTR Input */}
-            <div className="space-y-2">
-              <label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground ml-1">UTR / Transaction ID *</label>
-              <Input
-                placeholder="e.g. 412345678901 or pay_xxxxx"
-                value={paymentId}
-                onChange={(e) => setPaymentId(e.target.value)}
-                className="input-3d h-14 font-black text-white px-6 text-base"
-              />
-            </div>
-
-            {/* Screenshot Upload */}
-            <div className="space-y-2">
-              <label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground ml-1">Payment Screenshot (Optional)</label>
-              <div className="relative rounded-2xl border-2 border-dashed border-white/10 bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/20 transition-all cursor-pointer overflow-hidden">
-                <Input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileChange}
-                  className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
-                />
-                {screenshotPreview ? (
-                  <div className="p-3 flex items-center gap-4">
-                    <img src={screenshotPreview} alt="Preview" className="w-16 h-16 rounded-xl object-cover border-2 border-emerald-500/30" />
-                    <div>
-                      <p className="text-sm font-black text-emerald-400">Screenshot Attached ✓</p>
-                      <p className="text-[10px] text-muted-foreground font-bold">{screenshot?.name}</p>
+        {/* === STEP 2: PAYMENT & VERIFY === */}
+        {step === 'payment' && (
+          <div className="p-8 pt-4 space-y-8 animate-in fade-in zoom-in-95 duration-500">
+            {/* Step 1: Action */}
+            <div className="relative p-6 rounded-3xl bg-blue-500/5 border border-blue-500/20 space-y-4 group">
+                <div className="absolute -top-3 left-6 px-4 py-1 bg-blue-600 text-white rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg">Step 01</div>
+                <div className="flex items-start gap-4">
+                    <div className="w-14 h-14 rounded-2xl bg-blue-500/20 flex items-center justify-center shrink-0 border border-blue-500/30">
+                        <Smartphone className="h-7 w-7 text-blue-400" />
                     </div>
-                  </div>
-                ) : (
-                  <div className="p-6 flex flex-col items-center gap-2">
-                    <ImagePlus className="h-8 w-8 text-white/20" />
-                    <p className="text-xs font-bold text-muted-foreground">Tap to upload screenshot</p>
-                  </div>
-                )}
-              </div>
+                    <div>
+                        <h3 className="text-lg font-black text-white">Make Payment</h3>
+                        <p className="text-xs text-blue-200/50 font-bold">Open your UPI app and pay exactly ₹{inrAmount}.</p>
+                    </div>
+                </div>
+                
+                <Button
+                    onClick={() => window.open(RAZORPAY_PAGE_URL, '_blank')}
+                    className="w-full h-16 rounded-2xl gap-3 text-lg font-black bg-white text-black hover:bg-white/90 shadow-xl"
+                >
+                    <ExternalLink className="h-5 w-5" />
+                    CLICK HERE TO PAY
+                </Button>
             </div>
 
-            {/* Submit Button */}
-            <Button
-              onClick={handleSubmitProof}
-              disabled={loading || !paymentId.trim()}
-              className="w-full h-20 rounded-3xl gap-4 text-xl font-black bg-gradient-to-r from-emerald-500 to-emerald-600 text-black hover:from-emerald-400 hover:to-emerald-500 shadow-[0_8px_30px_rgba(16,185,129,0.25)] transition-all hover:shadow-[0_8px_40px_rgba(16,185,129,0.4)] hover:scale-[1.02]"
-            >
-              {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : <Upload className="h-6 w-6" />}
-              {loading ? 'VERIFYING...' : 'SUBMIT PAYMENT PROOF'}
-            </Button>
-
-            {/* OR Divider */}
-            <div className="flex items-center gap-4">
-              <div className="flex-1 h-px bg-white/10" />
-              <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Or</span>
-              <div className="flex-1 h-px bg-white/10" />
-            </div>
-
-            {/* Help & Support Footer */}
-            <div className="pt-6 border-t border-white/5 space-y-4">
-              <div className="flex items-center justify-between px-2">
-                <span className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] flex items-center gap-2">
-                  <ShieldCheck className="h-3 w-3 text-emerald-500" />
-                  Official Live Support
-                </span>
-                <Badge variant="outline" className="text-[10px] bg-emerald-500/5 text-emerald-400 border-emerald-500/20 px-2 py-0.5 rounded-lg animate-pulse">
-                  ONLINE
-                </Badge>
-              </div>
-
-              <a
-                href={TELEGRAM_SUPPORT}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-4 p-5 rounded-3xl bg-gradient-to-br from-[#229ED9]/10 via-[#229ED9]/5 to-transparent border border-[#229ED9]/20 hover:border-[#229ED9]/40 transition-all group scale-100 hover:scale-[1.02] active:scale-95 shadow-lg shadow-[#229ED9]/5"
-              >
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#229ED9] to-[#128C7E] flex items-center justify-center shrink-0 shadow-[0_8px_20px_rgba(34,158,217,0.3)] group-hover:rotate-6 transition-transform">
-                  <Send className="h-7 w-7 text-white fill-white/20" />
+            {/* Step 2: Proof Details */}
+            <div className="relative p-7 rounded-[2.5rem] bg-emerald-500/5 border border-emerald-500/20 space-y-6">
+                <div className="absolute -top-3 left-6 px-4 py-1 bg-emerald-600 text-black rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg">Step 02</div>
+                
+                {/* UTR Input */}
+                <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                        <label className="text-xs font-black uppercase tracking-widest text-emerald-400">UTR / Transaction ID</label>
+                        <Badge variant="outline" className="border-emerald-500/20 text-emerald-400 text-[9px] font-black uppercase">Required</Badge>
+                    </div>
+                    <div className="relative">
+                        <Input
+                            placeholder="Enter 12-digit UTR number"
+                            value={paymentId}
+                            onChange={(e) => setPaymentId(e.target.value)}
+                            className="h-16 rounded-2xl font-black text-xl px-6 bg-white/[0.03] border-white/10 focus:border-emerald-500/50 text-white transition-all shadow-inner"
+                        />
+                        {paymentId.length >= 10 && <CheckCircle2 className="absolute right-5 top-1/2 -translate-y-1/2 h-6 w-6 text-emerald-500 animate-in zoom-in" />}
+                    </div>
                 </div>
-                <div className="flex-1">
-                  <p className="text-base font-black text-white tracking-tight">Payment Issue? Chat Now</p>
-                  <p className="text-[11px] text-[#229ED9] font-black uppercase tracking-wider flex items-center gap-1.5 mt-0.5">
-                    Live Support <span className="w-1 h-1 rounded-full bg-[#229ED9]" /> @HenryMiller08
-                  </p>
+
+                {/* Screenshot Input */}
+                <div className="space-y-3">
+                    <label className="text-xs font-black uppercase tracking-widest text-emerald-400">Upload Receipt Screenshot</label>
+                    <div className="relative h-24 rounded-2xl border-2 border-dashed border-white/10 bg-white/[0.02] hover:bg-white/5 hover:border-emerald-500/30 transition-all cursor-pointer overflow-hidden group/upload">
+                        <Input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleFileChange}
+                            className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-20"
+                        />
+                        {screenshotPreview ? (
+                            <div className="px-6 flex items-center gap-4 h-full relative z-10 bg-emerald-500/5">
+                                <img src={screenshotPreview} alt="Preview" className="w-14 h-14 rounded-xl object-cover border-2 border-emerald-500/50" />
+                                <div className="flex-1">
+                                    <p className="text-sm font-black text-emerald-400">Proof Selected ✅</p>
+                                    <p className="text-[10px] text-white/30 truncate">{screenshot?.name}</p>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="flex flex-col items-center justify-center gap-1 h-full relative z-10">
+                                <ImagePlus className="h-6 w-6 text-white/20 group-hover/upload:text-emerald-400 transition-colors" />
+                                <p className="text-[10px] font-black uppercase tracking-widest text-white/20 group-hover/upload:text-white">Tap to upload proof screenshot</p>
+                            </div>
+                        )}
+                    </div>
                 </div>
-                <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-[#229ED9]/20 transition-colors">
-                  <MessageCircle className="h-5 w-5 text-white/50 group-hover:text-white" />
-                </div>
-              </a>
-              
-              <p className="text-center text-[9px] text-muted-foreground font-bold uppercase tracking-[0.3em] opacity-40">
-                Response Time: ~2 Minutes • Verified Service
-              </p>
+
+                {/* Submit button */}
+                <Button
+                    onClick={handleSubmitProof}
+                    disabled={loading || !paymentId.trim()}
+                    className="w-full h-20 rounded-[2rem] gap-4 text-xl font-black bg-gradient-to-r from-emerald-500 to-emerald-600 text-black hover:from-emerald-400 hover:to-emerald-500 shadow-2xl transition-all hover:scale-[1.02] active:scale-95 mt-2"
+                >
+                    {loading ? <Loader2 className="h-7 w-7 animate-spin" /> : <ShieldCheck className="h-7 w-7" />}
+                    {loading ? 'PROCESSING...' : 'SUBMIT DEPOSIT PROOF'}
+                </Button>
             </div>
 
             <button
-              onClick={() => setStep('pay')}
-              className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground hover:text-white transition-colors block mx-auto font-black flex items-center gap-2"
+                onClick={() => setStep('amount')}
+                className="text-xs uppercase font-black tracking-[0.3em] text-white/20 hover:text-white transition-colors block mx-auto flex items-center gap-2"
             >
-              <ArrowLeft className="h-3 w-3" /> Back to Payment
+                <ArrowLeft className="h-3 w-3" /> Back
             </button>
           </div>
         )}
 
-        {/* === STEP 4: SUCCESS === */}
+        {/* === STEP 3: SUCCESS === */}
         {step === 'done' && (
-          <div className="p-12 text-center space-y-6">
-            <div className="relative">
-              <div className="w-28 h-28 rounded-full bg-gradient-to-br from-emerald-500/20 to-emerald-500/10 border-2 border-emerald-500/30 flex items-center justify-center mx-auto shadow-[0_0_60px_rgba(16,185,129,0.2)]">
-                <CheckCircle2 className="h-14 w-14 text-emerald-400" />
-              </div>
-              <div className="absolute inset-0 w-28 h-28 mx-auto rounded-full bg-emerald-500/10 animate-ping" style={{ animationDuration: '2s' }} />
+          <div className="p-16 text-center space-y-10 animate-in zoom-in-95 duration-700">
+            <div className="relative inline-block">
+                <div className="w-36 h-36 rounded-[3rem] bg-emerald-500 flex items-center justify-center mx-auto shadow-[0_20px_60px_-10px_rgba(16,185,129,0.5)] rotate-6">
+                    <CheckCircle2 className="h-20 w-20 text-black" />
+                </div>
+                <Sparkles className="absolute -top-4 -right-4 h-12 w-12 text-emerald-400 animate-pulse" />
             </div>
 
-            <div>
-              <h3 className="text-3xl font-black text-white mb-2 tracking-tighter">PAYMENT RECEIVED!</h3>
-              <p className="text-emerald-400 font-black uppercase tracking-[0.2em] text-xs">Request ID: {paymentId}</p>
-            </div>
-
-            <div className="p-6 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 max-w-sm mx-auto space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground font-bold">Amount Paid</span>
-                <span className="font-black text-white">₹{inrAmount}</span>
-              </div>
-              <div className="h-px bg-white/5" />
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground font-bold">Wallet Credit</span>
-                <span className="font-black text-emerald-400">${usdCredit}</span>
-              </div>
-              <div className="h-px bg-white/5" />
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground font-bold">Status</span>
-                <Badge className="bg-amber-500/10 text-amber-400 border-amber-500/20 text-[10px] font-black uppercase">
-                  <Clock className="h-3 w-3 mr-1" /> Processing
-                </Badge>
+            <div className="space-y-3">
+              <h3 className="text-5xl font-black text-white tracking-tighter italic">SUBMITTED!</h3>
+              <div className="flex items-center justify-center gap-2">
+                  <Badge className="bg-emerald-500/20 text-emerald-400 border-none font-black px-4 py-1.5 rounded-full text-xs">₹{inrAmount} PROCESSING</Badge>
               </div>
             </div>
 
-            <div className="p-5 rounded-2xl bg-blue-500/5 border border-blue-500/10 max-w-sm mx-auto">
-              <p className="text-sm font-bold text-blue-200/80 leading-relaxed">
-                🎉 Your funds will be credited to your wallet within <span className="text-white font-black">10 minutes</span>.
-                You will see the updated balance automatically.
-              </p>
+            <div className="p-8 rounded-[2.5rem] bg-white/[0.03] border border-white/5 space-y-4 max-w-sm mx-auto">
+               <p className="text-sm font-bold text-white/60 leading-relaxed">
+                  Your deposit request has been received. Our team will verify the payment and credit your wallet within <span className="text-emerald-400 font-black">5-10 minutes</span>.
+               </p>
+               <div className="h-px bg-white/5" />
+               <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/20">Please wait for balance to update</p>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
-              <Button
-                onClick={resetFlow}
-                className="bg-white text-black font-black px-10 h-14 rounded-2xl hover:bg-white/90 shadow-lg"
-              >
-                <Sparkles className="h-5 w-5 mr-2" /> DEPOSIT MORE
+            <div className="flex flex-col gap-3 max-w-xs mx-auto">
+              <Button onClick={resetFlow} className="w-full bg-white text-black font-black h-16 rounded-2xl hover:bg-white/90 shadow-xl">
+                DEPOSIT MORE
               </Button>
               <a href={TELEGRAM_SUPPORT} target="_blank" rel="noopener noreferrer">
-                <Button
-                  variant="outline"
-                  className="h-14 rounded-2xl border-[#229ED9]/20 text-[#229ED9] hover:bg-[#229ED9]/10 font-black px-8"
-                >
-                  <Send className="h-4 w-4 mr-2" /> Contact Support
+                <Button variant="ghost" className="w-full h-16 text-white/40 hover:text-white font-black">
+                  <MessageCircle className="h-5 w-5 mr-3" /> Need Help?
                 </Button>
               </a>
             </div>
           </div>
         )}
+
+        {/* Support Bar */}
+        <div className="px-8 pb-8">
+            <div className="flex items-center justify-between p-5 rounded-2xl bg-white/[0.02] border border-white/5">
+                <div className="flex items-center gap-3">
+                    <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                    <span className="text-[10px] font-black uppercase tracking-widest text-white/40">Admin Support</span>
+                </div>
+                <a href={TELEGRAM_SUPPORT} className="text-[10px] font-black uppercase tracking-widest text-emerald-400 border-b border-emerald-500/30 pb-0.5 hover:text-white transition-colors">
+                    Chat with @HenryMiller08
+                </a>
+            </div>
+        </div>
       </div>
     </div>
   );
