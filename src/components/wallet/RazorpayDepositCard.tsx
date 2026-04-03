@@ -7,7 +7,7 @@ import {
   Loader2, Zap, IndianRupee, ExternalLink, ArrowLeft,
   CheckCircle2, ShieldCheck, Upload, Send, Sparkles,
   Clock, ImagePlus, ArrowRight, MessageCircle, Wallet,
-  Info, Smartphone, Copy
+  Info, Smartphone, AlertCircle
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
@@ -17,8 +17,6 @@ import { useCurrency } from '@/hooks/useCurrency';
 const RAZORPAY_PAGE_URL = "https://razorpay.me/@organicsmm";
 const TELEGRAM_SUPPORT = "https://t.me/HenryMiller08";
 
-const QUICK_AMOUNTS = [100, 250, 500, 1000, 2500, 5000];
-
 export default function RazorpayDepositCard() {
   const { user, profile } = useAuth();
   const queryClient = useQueryClient();
@@ -26,17 +24,10 @@ export default function RazorpayDepositCard() {
   const [inrAmount, setInrAmount] = useState('');
   const [usdCredit, setUsdCredit] = useState<number>(0);
   const [paymentId, setPaymentId] = useState('');
-  const [fullName, setFullName] = useState(profile?.full_name || '');
-  const [email, setEmail] = useState(user?.email || '');
   const [loading, setLoading] = useState(false);
   const [screenshot, setScreenshot] = useState<File | null>(null);
   const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
-  const [step, setStep] = useState<'amount' | 'payment' | 'done'>('amount');
-
-  useEffect(() => {
-    if (profile?.full_name) setFullName(profile.full_name);
-    if (user?.email) setEmail(user.email);
-  }, [profile, user]);
+  const [step, setStep] = useState<'amount' | 'pay_and_submit' | 'done'>('amount');
 
   useEffect(() => {
     const val = parseFloat(inrAmount);
@@ -64,12 +55,7 @@ export default function RazorpayDepositCard() {
       return;
     }
     if (!paymentId.trim()) {
-      toast({ title: 'Missing Reference', description: 'Please enter UTR / Transaction ID', variant: 'destructive' });
-      return;
-    }
-
-    if (!user?.id) {
-      toast({ title: 'Not Authenticated', description: 'Please log in' });
+      toast({ title: 'Missing UTR', description: 'Please enter 12-digit UTR/Transaction ID', variant: 'destructive' });
       return;
     }
 
@@ -78,248 +64,228 @@ export default function RazorpayDepositCard() {
       let screenshotUrl: string | null = null;
       if (screenshot) {
         const ext = screenshot.name.split('.').pop() || 'jpg';
-        const path = `${user.id}/${Date.now()}.${ext}`;
-        
+        const path = `${user?.id}/${Date.now()}.${ext}`;
         const { data: uploadData, error: uploadErr } = await supabase.storage
           .from('payment-proofs')
           .upload(path, screenshot, { upsert: true });
 
-        if (uploadErr) throw new Error(uploadErr.message);
-
-        if (uploadData) {
-          const { data: urlData } = supabase.storage.from('payment-proofs').getPublicUrl(path);
-          screenshotUrl = urlData.publicUrl;
-        }
+        if (uploadErr) throw uploadErr;
+        const { data: urlData } = supabase.storage.from('payment-proofs').getPublicUrl(path);
+        screenshotUrl = urlData.publicUrl;
       }
 
-      const descriptionObj = {
-        text: `Paid: ₹${inrAmount} | Name: ${fullName} | Email: ${email} | Credit: $${usdCredit}`,
-        screenshot_url: screenshotUrl,
-      };
-
-      const { error } = await supabase.from('transactions').insert({
-        user_id: user.id,
+      const { error: dbErr } = await supabase.from('transactions').insert({
+        user_id: user?.id,
         type: 'deposit',
         amount: usdCredit,
         balance_after: 0,
         status: 'pending',
         payment_method: 'razorpay_manual',
         payment_reference: paymentId,
-        description: JSON.stringify(descriptionObj),
+        description: JSON.stringify({ inr_amount: inrAmount, screenshot_url: screenshotUrl }),
       });
 
-      if (error) throw new Error(error.message);
+      if (dbErr) throw dbErr;
 
-      // Send Telegram Notification
       supabase.functions.invoke('send-telegram-notification', {
-        body: {
-          message: `NEW DEPOSIT: ₹${inrAmount} | UTR: ${paymentId}`,
-          photo_url: screenshotUrl,
-        },
+        body: { message: `Deposit: ₹${inrAmount} | UTR: ${paymentId}`, photo_url: screenshotUrl },
       }).catch(console.error);
 
       setStep('done');
       toast({ title: 'Submitted Successfully' });
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
     } catch (err: any) {
-      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+      toast({ title: 'Submission Failed', description: err.message, variant: 'destructive' });
     } finally {
       setLoading(false);
     }
   };
 
-  const resetFlow = () => {
-    setStep('amount');
-    setInrAmount('');
-    setPaymentId('');
-    setScreenshot(null);
-    setScreenshotPreview(null);
-  };
-
   return (
-    <div className="max-w-md mx-auto py-10 antialiased">
-      {/* Light Clean Card */}
-      <div className="bg-white rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.05)] border border-slate-100 overflow-hidden">
-        {/* Simple Header */}
-        <div className="bg-slate-50 p-8 border-b border-slate-100">
-            <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-emerald-500 flex items-center justify-center text-white shadow-lg shadow-emerald-500/20">
-                    <IndianRupee className="h-6 w-6" />
+    <div className="max-w-md mx-auto my-10 px-4">
+      {/* Main Container - Clean Light Design */}
+      <div className="bg-white border border-slate-200 rounded-3xl shadow-soft overflow-hidden">
+        
+        {/* Header - Simple & High Contrast */}
+        <div className="bg-slate-50/50 p-8 border-b border-slate-100">
+            <div className="flex items-center gap-5">
+                <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center shadow-sm">
+                    <IndianRupee className="h-7 w-7 text-primary" />
                 </div>
                 <div>
-                    <h2 className="text-xl font-bold text-slate-800 tracking-tight">Add Money</h2>
-                    <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest">Safe & Secure UPI Deposit</p>
+                    <h2 className="text-2xl font-black text-slate-900 tracking-tight">Deposit Money</h2>
+                    <p className="text-[10px] text-primary font-black uppercase tracking-[0.2em]">Secure UPI Gateway</p>
                 </div>
             </div>
         </div>
 
-        {/* STEP 1: AMOUNT */}
+        {/* STEP 1: SELECT AMOUNT */}
         {step === 'amount' && (
-          <div className="p-8 space-y-6 animate-in fade-in duration-500">
+          <div className="p-8 space-y-8">
             <div className="space-y-4">
-               <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Select Amount (INR)</label>
-               <div className="grid grid-cols-3 gap-2">
-                {[500, 1000, 2000].map(amt => (
-                    <button
-                        key={amt}
-                        onClick={() => setInrAmount(String(amt))}
-                        className={`py-3 rounded-xl text-sm font-bold transition-all border ${
-                            inrAmount === String(amt) 
-                            ? 'bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-500/20' 
-                            : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'
-                        }`}
-                    >
-                        ₹{amt}
-                    </button>
-                ))}
-               </div>
+                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest block ml-1">Quick Select</label>
+                <div className="grid grid-cols-3 gap-3">
+                    {[500, 1000, 2500].map(amt => (
+                        <button
+                            key={amt}
+                            onClick={() => setInrAmount(String(amt))}
+                            className={`py-4 rounded-xl text-lg font-bold transition-all border ${
+                                inrAmount === String(amt)
+                                ? 'bg-primary border-primary text-white shadow-md'
+                                : 'bg-white border-slate-200 text-slate-600 hover:border-primary/50'
+                            }`}
+                        >
+                            ₹{amt}
+                        </button>
+                    ))}
+                </div>
             </div>
 
-            <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Or Enter Custom Amount</label>
-                <div className="relative group">
-                    <span className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-2xl">₹</span>
+            <div className="space-y-3">
+                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest block ml-1">Enter Custom Amount (INR)</label>
+                <div className="relative">
+                    <span className="absolute left-6 top-1/2 -translate-y-1/2 text-primary font-black text-3xl">₹</span>
                     <Input
                         type="number"
                         value={inrAmount}
                         onChange={(e) => setInrAmount(e.target.value)}
-                        className="pl-12 h-16 rounded-2xl font-bold text-2xl bg-slate-50 border-slate-100 focus:border-emerald-500/50 transition-all"
+                        className="pl-14 h-20 rounded-2xl font-black text-4xl text-slate-900 bg-slate-50 border-slate-200 focus:border-primary transition-all placeholder:text-slate-300"
                         placeholder="20"
                     />
                     {usdCredit > 0 && (
-                        <div className="absolute right-6 top-1/2 -translate-y-1/2 font-bold text-white bg-slate-800 px-3 py-1 rounded-lg text-sm">
-                            = ${usdCredit}
+                        <div className="absolute right-6 top-1/2 -translate-y-1/2 font-bold text-primary bg-primary/5 px-3 py-1.5 rounded-lg text-sm border border-primary/10">
+                            ≈ ${usdCredit}
                         </div>
                     )}
                 </div>
-                <p className="text-[10px] text-slate-400 font-medium px-1">Note: Minimum deposit is ₹20. Credits are added in USD.</p>
             </div>
 
             <Button
-              onClick={() => setStep('payment')}
+              onClick={() => setStep('pay_and_submit')}
               disabled={!inrAmount || Number(inrAmount) < 20}
-              className="w-full h-16 rounded-2xl gap-3 text-lg font-bold bg-slate-900 hover:bg-slate-800 text-white shadow-xl transition-all active:scale-[0.98]"
+              className="w-full h-16 rounded-2xl gap-3 text-lg font-bold bg-primary hover:bg-primary/90 text-white shadow-lg transition-all active:scale-[0.98]"
             >
-              Continue to Pay
+              Continue to Pay ₹{inrAmount}
               <ArrowRight className="h-5 w-5" />
             </Button>
           </div>
         )}
 
-        {/* STEP 2: PAY & UPLOAD */}
-        {step === 'payment' && (
-          <div className="p-8 space-y-8 animate-in slide-in-from-right-4 duration-500">
-            {/* Pay Button Area */}
-            <div className="space-y-3">
-                <p className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                    <span className="w-5 h-5 rounded-full bg-slate-900 text-white flex items-center justify-center text-[10px]">1</span>
-                    Open Payment App
-                </p>
+        {/* STEP 2: PAY & SUBMIT */}
+        {step === 'pay_and_submit' && (
+          <div className="p-8 space-y-6">
+            
+            {/* Payment Section */}
+            <div className="bg-primary/5 border border-primary/10 rounded-2xl p-6 space-y-4">
+                <div className="flex items-center justify-between">
+                    <h3 className="font-bold text-slate-900 text-base">1. Make Payment</h3>
+                    <div className="text-primary font-black text-lg">₹{inrAmount}</div>
+                </div>
                 <Button
                     onClick={() => window.open(RAZORPAY_PAGE_URL, '_blank')}
-                    variant="outline"
-                    className="w-full h-14 rounded-xl gap-3 border-2 border-slate-900 text-slate-900 font-bold hover:bg-slate-50 transition-all"
+                    className="w-full h-14 rounded-xl gap-2 text-base font-bold bg-primary hover:bg-primary/90 text-white shadow-md transition-all"
                 >
                     <ExternalLink className="h-4 w-4" />
-                    Pay via UPI (GPay/PhonePe)
+                    Open Payment App
                 </Button>
-            </div>
-
-            <div className="h-px bg-slate-100 relative">
-                <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white px-2 text-[10px] text-slate-300 font-black uppercase tracking-widest">THEN</span>
-            </div>
-
-            {/* Proof Area */}
-            <div className="space-y-6">
-                <p className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                    <span className="w-5 h-5 rounded-full bg-slate-900 text-white flex items-center justify-center text-[10px]">2</span>
-                    Upload Payment Proof
+                <p className="text-[10px] text-slate-400 font-bold text-center uppercase tracking-widest leading-loose">
+                    Scan or Pay via UPI & Copy UTR Number
                 </p>
+            </div>
 
+            {/* Submission Section */}
+            <div className="space-y-6">
+                <h3 className="font-bold text-slate-900 text-base">2. Verify Payment</h3>
+                
                 <div className="space-y-4">
-                    <div className="space-y-1.5">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-0.5">Transaction ID / UTR *</label>
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">UTR / Transaction ID *</label>
                         <Input
-                            placeholder="12-digit number"
+                            placeholder="12-digit number from payment app"
                             value={paymentId}
                             onChange={(e) => setPaymentId(e.target.value)}
-                            className="h-12 rounded-xl bg-slate-50 border-slate-100 font-bold"
+                            className="h-12 rounded-xl bg-white border-slate-200 font-bold text-slate-900 px-4 focus:ring-primary/20"
                         />
                     </div>
 
-                    <div className="relative rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 p-6 flex flex-col items-center gap-2 hover:bg-slate-100 transition-all cursor-pointer group">
-                        <Input
-                            type="file"
-                            accept="image/*"
-                            onChange={handleFileChange}
-                            className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                        />
-                        {screenshotPreview ? (
-                            <div className="flex items-center gap-3 w-full">
-                                <img src={screenshotPreview} alt="Preview" className="w-10 h-10 rounded-lg object-cover shadow-md" />
-                                <p className="text-xs font-bold text-slate-600 truncate">{screenshot?.name}</p>
-                            </div>
-                        ) : (
-                            <>
-                                <ImagePlus className="h-5 w-5 text-slate-300 group-hover:text-slate-400 transition-colors" />
-                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Tap to upload Screenshot</p>
-                            </>
-                        )}
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Screenshot (Optional)</label>
+                        <div className="relative h-16 rounded-xl border border-dashed border-slate-300 bg-slate-50 flex items-center justify-center group overflow-hidden">
+                            <Input
+                                type="file"
+                                accept="image/*"
+                                onChange={handleFileChange}
+                                className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
+                            />
+                            {screenshotPreview ? (
+                                <div className="flex items-center gap-3 w-full px-4">
+                                    <img src={screenshotPreview} alt="Proof" className="w-8 h-8 rounded border border-slate-200 shadow-sm" />
+                                    <p className="text-xs font-bold text-slate-600 truncate flex-1">{screenshot?.name}</p>
+                                    <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                                </div>
+                            ) : (
+                                <div className="flex items-center gap-2 opacity-60">
+                                    <ImagePlus className="h-4 w-4 text-slate-400" />
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Attach Proof</span>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
 
                 <Button
                     onClick={handleSubmitProof}
                     disabled={loading || !paymentId.trim()}
-                    className="w-full h-16 rounded-2xl gap-3 text-lg font-bold bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/20"
+                    className="w-full h-16 rounded-2xl gap-3 text-lg font-bold bg-emerald-500 hover:bg-emerald-600 text-white shadow-md transition-all"
                 >
-                    {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <CheckCircle2 className="h-5 w-5" />}
-                    Confirm Deposit
+                    {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <ShieldCheck className="h-5 w-5" />}
+                    {loading ? 'Verifying...' : 'Submit Verification'}
                 </Button>
             </div>
 
-            <button onClick={() => setStep('amount')} className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mx-auto flex items-center gap-2">
-                <ArrowLeft className="h-3 w-3" /> Go Back
+            <button onClick={() => setStep('amount')} className="w-full text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center justify-center gap-2 hover:text-slate-600 transition-colors">
+                <ArrowLeft className="h-3 w-3" /> Back to Amount Selection
             </button>
           </div>
         )}
 
-        {/* STEP 3: DONE */}
+        {/* STEP 3: SUCCESS */}
         {step === 'done' && (
-          <div className="p-12 text-center space-y-6 animate-in zoom-in-95 duration-500">
-            <div className="w-24 h-24 rounded-full bg-emerald-50 flex items-center justify-center mx-auto border-4 border-emerald-500/10">
-                <CheckCircle2 className="h-12 w-12 text-emerald-500" />
+          <div className="p-12 text-center space-y-8 animate-in zoom-in-95 duration-500">
+            <div className="w-24 h-24 rounded-3xl bg-emerald-500 flex items-center justify-center mx-auto shadow-lg rotate-3">
+                <CheckCircle2 className="h-12 w-12 text-white" />
             </div>
 
-            <div>
-              <h3 className="text-2xl font-bold text-slate-800 tracking-tight">Proof Submitted!</h3>
-              <p className="text-sm text-slate-400 font-medium">We are verifying your payment.</p>
+            <div className="space-y-2">
+              <h3 className="text-3xl font-black text-slate-900 tracking-tight">Payment Submitted</h3>
+              <p className="text-base font-bold text-emerald-600">Verification in progress (5-10m)</p>
             </div>
 
-            <div className="bg-slate-50 rounded-2xl p-6 text-sm text-slate-600 font-medium leading-relaxed">
-                Thank you for your deposit! Our team will credit your funds within <span className="font-bold text-slate-900">5-10 minutes</span>.
+            <div className="bg-slate-50 rounded-2xl p-6 border border-slate-100 text-sm text-slate-500 font-medium leading-relaxed">
+               Your balance will be updated automatically once the transaction is verified by our team.
             </div>
 
-            <Button onClick={resetFlow} className="w-full h-14 rounded-xl bg-slate-900 text-white font-bold">
-                Finish
+            <Button 
+                onClick={() => setStep('amount')} 
+                className="w-full h-14 rounded-xl bg-slate-900 text-white font-bold text-base hover:bg-slate-800 shadow-lg"
+            >
+                Return to Wallet
             </Button>
           </div>
         )}
-      </div>
 
-      {/* Very Simple Help */}
-      <div className="mt-8 text-center space-y-4">
-        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.2em]">Need Help?</p>
-        <div className="flex items-center justify-center gap-6">
-            <a href={TELEGRAM_SUPPORT} target="_blank" className="flex items-center gap-2 text-slate-400 hover:text-slate-600 transition-colors">
-                <Send className="h-4 w-4" />
-                <span className="text-xs font-bold">Henry Miller</span>
-            </a>
-            <div className="w-1 h-1 rounded-full bg-slate-200" />
-            <a href={TELEGRAM_SUPPORT} target="_blank" className="flex items-center gap-2 text-slate-400 hover:text-slate-600 transition-colors">
-                <MessageCircle className="h-4 w-4" />
-                <span className="text-xs font-bold">Chat Live</span>
-            </a>
+        {/* Global Footer Support */}
+        <div className="p-8 pt-0">
+            <div className="p-5 rounded-2xl bg-slate-50 border border-slate-100 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Support Online</span>
+                </div>
+                <a href={TELEGRAM_SUPPORT} target="_blank" className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-slate-200 hover:border-primary/30 transition-all text-xs font-bold text-slate-600">
+                    <Send className="h-3.5 w-3.5 text-primary" />
+                    Support: @HenryMiller08
+                </a>
+            </div>
         </div>
       </div>
     </div>
