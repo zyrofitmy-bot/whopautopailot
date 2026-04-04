@@ -724,6 +724,17 @@ serve(async (req) => {
       const localExecutionKey = `${sameLinkNormalized}|${currentTypeNormalized}`
       
       // ============================================
+      // EXECUTION-LEVEL GUARD: Only start ONE run per link+type per execution
+      // This ensures strict sequential delivery and prevents duplicate sends
+      // when multiple cron cycles or triggers overlap.
+      // ============================================
+      if (startedInThisExecution.has(localExecutionKey)) {
+        console.log(`[${executionId}] ⏩ Skipping run #${run.run_number} - already started a run for this link/type in this execution`)
+        skipped++
+        continue
+      }
+      
+      // ============================================
       // PER-PROVIDER LINK GUARD (New Parallel Multi-Provider Logic):
       // We no longer block the RUN entirely if another run is active for the same link.
       // Instead, we let it proceed to the Provider Selection Phase.
@@ -1182,17 +1193,12 @@ serve(async (req) => {
                 verify_raw: statusCheck.rawText,
               }
 
-              // Keep a transparent trail in DB (so UI never "lies")
-              await supabase.from('organic_run_schedule').update({
-                provider_order_id: providerOrderId,
-                provider_status: 'Unverified',
-                provider_response: providerResult,
-                error_message: `Verification pending: ${statusCheck.error}`,
-                last_status_check: new Date().toISOString(),
-              }).eq('id', run.id)
-
-              await new Promise(resolve => setTimeout(resolve, 300))
-              continue // Try next account
+              // STOP HERE: Order is placed, do NOT try next provider
+              verifiedStatus = 'Pending Verification'
+              successAccount = selectedAccount
+              success = true
+              console.log(`⚠️ Order ${providerOrderId} placed on ${selectedAccount.name} but verification failed. Breaking loop to avoid double orders.`)
+              break 
             }
 
             // Verified ✅
@@ -1301,6 +1307,12 @@ serve(async (req) => {
           account_used: successAccount.name,
           accounts_tried: accountsToTry.length
         })
+
+        // IMPORTANT: Mark as completed to prevent infinite retry loop
+        await supabase.from('organic_run_schedule').update({
+          status: 'completed',
+          completed_at: new Date().toISOString(),
+        }).eq('id', run.id)
       } else {
         // All accounts failed — ALWAYS revert to pending for auto-retry
         // Only truly permanent errors (platform mismatch) are handled above with retry_count=99
