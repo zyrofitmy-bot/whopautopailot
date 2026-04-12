@@ -182,20 +182,34 @@ Deno.serve(async (req) => {
 
           // API can return array of services or single object
           let rate = 0;
+          let min = null;
+          let max = null;
           if (Array.isArray(data)) {
             // Find the exact service in the array
             const found = data.find((s: any) => String(s.service) === String(p.providerServiceId));
-            if (found) rate = parseFloat(found.rate) || 0;
+            if (found) {
+              rate = parseFloat(found.rate) || 0;
+              min = parseFloat(found.min) || null;
+              max = parseFloat(found.max) || null;
+            }
           } else if (data && data.rate) {
             rate = parseFloat(data.rate) || 0;
+            min = parseFloat(data.min) || null;
+            max = parseFloat(data.max) || null;
           }
 
           // Convert the fetched rate to the TARGET DB Currency (USD)
           const rawCurrency = providerCurrencyCache[p.accountName] || "USD";
           const convertedRate = convertToTarget(rate, rawCurrency);
 
-          console.log(`[RATE] ${p.accountName} service=${p.providerServiceId} raw=${rate} ${rawCurrency} -> converted=${convertedRate} ${TARGET_CURRENCY}`);
-          return { rate: convertedRate, source: p.accountName, providerServiceId: p.providerServiceId };
+          console.log(`[RATE] ${p.accountName} service=${p.providerServiceId} raw=${rate} ${rawCurrency} -> converted=${convertedRate} ${TARGET_CURRENCY} (Min: ${min}, Max: ${max})`);
+          return { 
+            rate: convertedRate, 
+            source: p.accountName, 
+            providerServiceId: p.providerServiceId,
+            min,
+            max
+          };
         } catch (e) {
           console.error(`Error fetching rate from ${p.accountName} for service ${p.providerServiceId}:`, e);
           return null;
@@ -204,10 +218,15 @@ Deno.serve(async (req) => {
 
       const rateResults = await Promise.all(ratePromises);
 
+      let minQty = null;
+      let maxQty = null;
+
       for (const r of rateResults) {
         if (r && r.rate > highestRate) {
           highestRate = r.rate;
           highestSource = `${r.source} (${r.providerServiceId})`;
+          minQty = r.min;
+          maxQty = r.max;
         }
       }
 
@@ -217,15 +236,20 @@ Deno.serve(async (req) => {
         // Store RAW provider cost (no markup). Frontend applies markup dynamically.
         const rawCost = Number(highestRate.toFixed(5));
 
-        console.log(`[UPDATE] service=${serviceId} name="${currentPriceMap[serviceId]?.name}" rawCost=${rawCost} from=${highestSource}`);
+        console.log(`[UPDATE] service=${serviceId} name="${currentPriceMap[serviceId]?.name}" rawCost=${rawCost} min=${minQty} max=${maxQty} from=${highestSource}`);
 
-        // Update service price to RAW provider cost
+        // Update service price, min, and max to provider values
+        const updateData: any = { 
+          price: rawCost,
+          updated_at: new Date().toISOString()
+        };
+        
+        if (minQty !== null) updateData.min_quantity = minQty;
+        if (maxQty !== null) updateData.max_quantity = maxQty;
+
         const { error: updateError } = await supabase
           .from("services")
-          .update({ 
-            price: rawCost,
-            updated_at: new Date().toISOString()
-          })
+          .update(updateData)
           .eq("id", serviceId);
 
         if (updateError) {
