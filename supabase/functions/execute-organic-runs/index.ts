@@ -187,7 +187,11 @@ serve(async (req) => {
       
       // Ensure minimum quantity
       let quantityToSend = run.quantity_to_send
-      const serviceMinQty = orderData.service.min_quantity || 10
+      let serviceMinQty = orderData.service.min_quantity || 10
+      if (orderData.service.category?.toLowerCase()?.includes('likes')) {
+        serviceMinQty = 10;
+      }
+      
       if (quantityToSend < serviceMinQty) {
         quantityToSend = serviceMinQty
       }

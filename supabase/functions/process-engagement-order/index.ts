@@ -251,6 +251,9 @@ serve(async (req) => {
             const { data: s } = await supabase.from('services').select('min_quantity').eq('id', finalServiceId).single()
             if (s?.min_quantity) providerMin = s.min_quantity
           }
+          if (engType === 'likes') {
+            providerMin = 10;
+          }
 
           const isViewType = ['views', 'impressions', 'reach', 'plays', 'watch_hours'].includes(engType)
           const stagger = platformStagger[engType] || platformStagger.generic

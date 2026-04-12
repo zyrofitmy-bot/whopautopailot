@@ -232,10 +232,13 @@ export default function EngagementOrder() {
     bundle.items.forEach(item => {
       // 1) Try the linked service first
       if (item.service && item.service.price > 0) {
+        const rawMin = item.service.min_quantity;
+        const serviceMin = item.engagement_type === 'likes' ? Math.min(rawMin > 0 ? rawMin : 10, 10) : rawMin;
+        
         prices[item.engagement_type] = {
           pricePerK: applyMarkup(item.service.price),
           serviceId: item.service.id,
-          minQuantity: item.service.min_quantity,
+          minQuantity: serviceMin,
         };
         return;
       }
@@ -255,21 +258,27 @@ export default function EngagementOrder() {
         });
 
         if (match) {
-          prices[item.engagement_type] = {
-            pricePerK: applyMarkup(match.price),
-            serviceId: match.id,
-            minQuantity: match.min_quantity,
-          };
+            const rawMin = match.min_quantity;
+            const serviceMin = item.engagement_type === 'likes' ? Math.min(rawMin > 0 ? rawMin : 10, 10) : rawMin;
+
+            prices[item.engagement_type] = {
+              pricePerK: applyMarkup(match.price),
+              serviceId: match.id,
+              minQuantity: serviceMin,
+            };
           return;
         }
       }
 
       // 3) Even if linked but price=0, still register the service for order routing
       if (item.service) {
+        const rawMin = item.service.min_quantity;
+        const serviceMin = item.engagement_type === 'likes' ? Math.min(rawMin > 0 ? rawMin : 10, 10) : rawMin;
+        
         prices[item.engagement_type] = {
           pricePerK: applyMarkup(item.service.price),
           serviceId: item.service.id,
-          minQuantity: item.service.min_quantity,
+          minQuantity: serviceMin,
         };
       }
     });
@@ -304,7 +313,9 @@ export default function EngagementOrder() {
         const ratioQuantity = Math.round(debouncedBaseQuantity * (ratioPercent / 100));
 
         const serviceData = servicePrices[type];
-        const serviceMin = serviceData?.minQuantity ?? 0;
+        const rawServiceMin = serviceData?.minQuantity ?? 0;
+        // FORCE minimum 10 for likes as requested by the user
+        const serviceMin = type === 'likes' ? Math.min(rawServiceMin > 0 ? rawServiceMin : 10, 10) : rawServiceMin;
 
         // Clamp quantity to service minimum
         const quantity = serviceMin > 0 ? Math.max(serviceMin, ratioQuantity) : ratioQuantity;
@@ -315,7 +326,7 @@ export default function EngagementOrder() {
           quantity: (isAutoRatios || !prev[type]) ? quantity : prev[type].quantity,
           price: serviceData ? (quantity / 1000) * serviceData.pricePerK : 0,
           serviceId: serviceData?.serviceId || null,
-          minQuantity: serviceData?.minQuantity,
+          minQuantity: serviceMin,
           // Per-type organic settings
           timeLimitHours: prev[type]?.timeLimitHours ?? DEFAULT_ORGANIC_SETTINGS.timeLimitHours,
           variancePercent: prev[type]?.variancePercent ?? DEFAULT_ORGANIC_SETTINGS.variancePercent,
@@ -804,7 +815,7 @@ export default function EngagementOrder() {
             <QuantitySelector
               value={baseQuantity}
               onChange={setBaseQuantity}
-              min={100}
+              min={10}
               max={1000000}
             />
           </CardContent>

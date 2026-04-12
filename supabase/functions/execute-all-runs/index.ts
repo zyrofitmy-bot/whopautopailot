@@ -956,7 +956,11 @@ serve(async (req) => {
       // to the next provider automatically! Merging destroys the organic spread.
       // ============================================
       let quantityToSend = run.quantity_to_send
-      const serviceMinQty = item.service.min_quantity || 10
+      let serviceMinQty = item.service.min_quantity || 10
+      // Force minimum 10 for likes in the backend executor as well
+      if (item.engagement_type === 'likes') {
+        serviceMinQty = 10;
+      }
       
       if (quantityToSend < serviceMinQty) {
         // We only bump the very last run slightly if it's naturally small,
