@@ -252,7 +252,7 @@ serve(async (req) => {
             if (s?.min_quantity) providerMin = s.min_quantity
           }
           if (engType === 'likes') {
-            providerMin = Math.max(providerMin, 10);
+            providerMin = 10;
           }
 
           const isViewType = ['views', 'impressions', 'reach', 'plays', 'watch_hours'].includes(engType)

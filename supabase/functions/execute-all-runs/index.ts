@@ -959,7 +959,7 @@ serve(async (req) => {
       let serviceMinQty = item.service.min_quantity || 10
       // Force minimum 10 for likes in the backend executor as well
       if (item.engagement_type?.toLowerCase()?.includes('likes')) {
-        serviceMinQty = Math.max(serviceMinQty, 10);
+        serviceMinQty = 10;
       }
       
       if (quantityToSend < serviceMinQty) {
