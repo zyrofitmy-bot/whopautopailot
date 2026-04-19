@@ -41,9 +41,17 @@ serve(async (req) => {
     // CRITICAL: Skip direct API call for organic orders
     if (order.is_organic_mode) {
       console.log(`[process-order] Organic order ${order_id} detected, skips direct API call (handled by schedule)`)
+      
+      // Trigger execution immediately
+      fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/execute-all-runs`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}` },
+        body: JSON.stringify({ instant: true, order_id: order_id })
+      }).catch(err => console.error('Error triggering execute-all-runs:', err))
+
       return new Response(JSON.stringify({ 
         success: true, 
-        message: 'Organic order detected, delivery will follow schedule',
+        message: 'Organic order detected, delivery started',
         is_organic: true 
       }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }

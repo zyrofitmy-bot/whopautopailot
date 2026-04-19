@@ -528,6 +528,13 @@ export default function Order() {
           console.error('Process order error:', processError);
         } else if (processResult?.success) {
           console.log('Order processed:', processResult.provider_order_id);
+          
+          // Trigger execution immediately if organic
+          if (deliveryMode === 'organic') {
+            supabase.functions.invoke('execute-all-runs', {
+              body: { instant: true, order_id: order.id }
+            }).catch(err => console.error('Error triggering execute-all-runs:', err));
+          }
         } else if (processResult?.error) {
           console.error('Provider error:', processResult.error);
         }

@@ -233,7 +233,7 @@ export default function EngagementOrder() {
       // 1) Try the linked service first
       if (item.service && item.service.price > 0) {
         const rawMin = item.service.min_quantity;
-        const serviceMin = item.engagement_type === 'likes' ? Math.min(rawMin > 0 ? rawMin : 10, 10) : rawMin;
+        const serviceMin = item.engagement_type === 'likes' ? Math.max(rawMin > 0 ? rawMin : 10, 10) : rawMin;
         
         prices[item.engagement_type] = {
           pricePerK: applyMarkup(item.service.price),
@@ -259,7 +259,7 @@ export default function EngagementOrder() {
 
         if (match) {
             const rawMin = match.min_quantity;
-            const serviceMin = item.engagement_type === 'likes' ? Math.min(rawMin > 0 ? rawMin : 10, 10) : rawMin;
+            const serviceMin = item.engagement_type === 'likes' ? Math.max(rawMin > 0 ? rawMin : 10, 10) : rawMin;
 
             prices[item.engagement_type] = {
               pricePerK: applyMarkup(match.price),
@@ -315,7 +315,7 @@ export default function EngagementOrder() {
         const serviceData = servicePrices[type];
         const rawServiceMin = serviceData?.minQuantity ?? 0;
         // FORCE minimum 10 for likes as requested by the user
-        const serviceMin = type === 'likes' ? Math.min(rawServiceMin > 0 ? rawServiceMin : 10, 10) : rawServiceMin;
+        const serviceMin = type === 'likes' ? Math.max(rawServiceMin > 0 ? rawServiceMin : 10, 10) : rawServiceMin;
 
         // Clamp quantity to service minimum
         const quantity = serviceMin > 0 ? Math.max(serviceMin, ratioQuantity) : ratioQuantity;

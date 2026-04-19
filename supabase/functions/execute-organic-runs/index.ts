@@ -189,7 +189,7 @@ serve(async (req) => {
       let quantityToSend = run.quantity_to_send
       let serviceMinQty = orderData.service.min_quantity || 10
       if (orderData.service.category?.toLowerCase()?.includes('likes')) {
-        serviceMinQty = 10;
+        serviceMinQty = Math.max(serviceMinQty, 10);
       }
       
       if (quantityToSend < serviceMinQty) {
