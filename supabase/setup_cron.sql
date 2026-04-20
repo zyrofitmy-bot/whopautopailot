@@ -39,3 +39,11 @@ SELECT cron.schedule('sync-service-prices-every-12-hours', '0 */12 * * *', $$
     body:='{}'::jsonb
   ) as request_id; 
 $$);
+
+-- 6. Schedule Cleanup of Old Completed Engagement Orders (Every hour, keeps 2 days of history)
+SELECT cron.unschedule('cleanup-old-engagement-orders');
+SELECT cron.schedule(
+  'cleanup-old-engagement-orders',
+  '0 * * * *',
+  $$SELECT cleanup_old_completed_engagement_orders();$$
+);
