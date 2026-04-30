@@ -1002,6 +1002,29 @@ serve(async (req) => {
       let verifiedCharge: number | null = null
       let verifiedLastStatusCheck: string | null = null
       
+      // ATOMIC LOCKING: Only ONE invocation can claim this run.
+      // Use strict status check — only 'pending' (or 'failed' for retries) can be claimed.
+      // If another invocation already set it to 'started', this update will match 0 rows.
+      const currentStatus = isRetry ? 'failed' : 'pending'
+      const { error: lockError, count: lockCount } = await supabase
+        .from('organic_run_schedule')
+        .update({
+          status: 'started',
+          started_at: new Date().toISOString(),
+          retry_count: (run.retry_count || 0) + (isRetry ? 1 : 0),
+          provider_order_id: null,
+          provider_status: null,
+          provider_response: null,
+        })
+        .eq('id', run.id)
+        .eq('status', currentStatus) // STRICT: only claim if still in expected status
+
+      if (lockError || lockCount === 0) {
+        console.log(`🔒 Run #${run.run_number} already claimed by another invocation or error, skipping`)
+        skipped++
+        continue // Skip this run entirely, move to next run
+      }
+
       for (const { account: selectedAccount, providerServiceId } of accountsToTry) {
         console.log(`\n📤 Trying account: ${selectedAccount.name} (service ID: ${providerServiceId})`)
         
@@ -1046,39 +1069,15 @@ serve(async (req) => {
           continue
         }
         
-        // ATOMIC LOCKING: Only ONE invocation can claim this run.
-        // Use strict status check — only 'pending' (or 'failed' for retries) can be claimed.
-        // If another invocation already set it to 'started', this update will match 0 rows.
-        const currentStatus = isRetry ? 'failed' : 'pending'
-        const { error: updateError, count: lockCount } = await supabase
-          .from('organic_run_schedule')
-          .update({
-            status: 'started',
-            started_at: new Date().toISOString(),
-            error_message: `Trying ${selectedAccount.name}...`,
-            retry_count: (run.retry_count || 0) + (isRetry ? 1 : 0),
-            provider_order_id: null,
-            provider_status: null,
-            provider_response: null,
-            provider_account_id: selectedAccount.id,
-            provider_account_name: selectedAccount.name,
-          })
-          .eq('id', run.id)
-          .eq('status', currentStatus) // STRICT: only claim if still in expected status
-
-        if (updateError) {
-          console.error(`Error updating run status:`, updateError)
-          continue
-        }
-
-        // RACE CONDITION GUARD: If count is 0, another invocation already claimed this run
-        if (lockCount === 0) {
-          console.log(`🔒 Run #${run.run_number} already claimed by another invocation, skipping`)
-          break // Exit account loop — run is being handled elsewhere
-        }
-
         // Update last_used_at for the account
         await updateAccountLastUsed(supabase, selectedAccount.id)
+
+        // Update run status to show which provider we are trying
+        await supabase.from('organic_run_schedule').update({
+            error_message: `Trying ${selectedAccount.name}...`,
+            provider_account_id: selectedAccount.id,
+            provider_account_name: selectedAccount.name,
+        }).eq('id', run.id)
 
         // Send to provider
         console.log(`Sending Run #${run.run_number}: ${quantityToSend} ${item.engagement_type} to ${selectedAccount.name}`)
@@ -1130,9 +1129,35 @@ serve(async (req) => {
               continue // Try next account
             }
             
-            // For other temporary errors, also try next account
+            // Check if this is a dangerous timeout error - SMM panels may have placed the order
+            const isDangerousTimeout = lastError!.toLowerCase().includes('timeout') || 
+                                       lastError!.toLowerCase().includes('temporarily') ||
+                                       lastError!.toLowerCase().includes('gateway')
+            
+            if (isDangerousTimeout) {
+              console.log(`🚨 Dangerous timeout error on ${selectedAccount.name}, order may have been placed. Breaking to prevent duplication.`)
+              
+              await supabase.from('organic_run_schedule').update({
+                status: 'failed',
+                error_message: 'DANGER: Provider timeout. Order may have been placed. Manual check required.',
+                retry_count: 99, // Prevent auto-retry
+                completed_at: new Date().toISOString()
+              }).eq('id', run.id)
+              
+              failed++
+              results.push({ 
+                run_id: run.id, type: item.engagement_type, run_number: run.run_number,
+                success: false, error: `DANGER: Provider timeout (${lastError})`
+              })
+              
+              successAccount = selectedAccount
+              success = false
+              break
+            }
+            
+            // For other safe temporary errors, try next account
             const isTemporaryError = TEMPORARY_ERRORS.some(err => 
-              lastError!.toLowerCase().includes(err.toLowerCase())
+              lastError!.toLowerCase().includes(err.toLowerCase()) && !isDangerousTimeout
             )
             
             if (isTemporaryError) {
@@ -1224,11 +1249,30 @@ serve(async (req) => {
             break // Stop trying more accounts
           }
         } catch (fetchError: any) {
-          lastError = 'Network error: ' + (fetchError.message || 'Unknown')
+          lastError = 'Network error or timeout: ' + (fetchError.message || 'Unknown')
           console.error(`Network error with ${selectedAccount.name}:`, fetchError.message)
-          // Try next account
-          await new Promise(resolve => setTimeout(resolve, 500))
-          continue
+          
+          // DANGER: If fetch timed out, the SMM panel MIGHT have placed the order!
+          // We MUST NOT failover to another provider, and we MUST NOT auto-retry this run later,
+          // otherwise we risk placing the order 2x or 3x and burning balance.
+          // We break the loop and ensure it fails permanently.
+          await supabase.from('organic_run_schedule').update({
+            status: 'failed',
+            error_message: 'DANGER: Fetch timed out. Order may have been placed. Manual check required.',
+            retry_count: 99, // Prevent auto-retry
+            completed_at: new Date().toISOString()
+          }).eq('id', run.id)
+          
+          failed++
+          results.push({ 
+            run_id: run.id, type: item.engagement_type, run_number: run.run_number,
+            success: false, error: 'DANGER: Fetch timed out (prevented duplicate)'
+          })
+          
+          // Set a flag to break the outer loop so we don't hit the "All accounts failed" auto-retry block
+          successAccount = selectedAccount
+          success = false
+          break
         }
       }
 
@@ -1322,27 +1366,34 @@ serve(async (req) => {
         // Only truly permanent errors (platform mismatch) are handled above with retry_count=99
         // Everything else keeps retrying every cron cycle until a panel becomes free
         const retryCount = (run.retry_count || 0) + 1
-        console.log(`🔄 All ${accountsToTry.length} accounts failed (attempt #${retryCount}), reverting to pending for auto-retry`)
-        await supabase.from('organic_run_schedule').update({
-          status: 'pending',
-          started_at: null,
-          error_message: `[Auto-retry #${retryCount}] All ${accountsToTry.length} accounts busy: ${lastError}`,
-          provider_response: providerResult,
-          provider_account_id: null,
-          retry_count: retryCount,
-          last_status_check: new Date().toISOString(),
-        }).eq('id', run.id)
-        skipped++
-        results.push({ 
-          run_id: run.id, 
-          type: item.engagement_type, 
-          run_number: run.run_number, 
-          success: false, 
-          error: lastError, 
-          will_retry: true,
-          retry_attempt: retryCount,
-          accounts_tried: accountsToTry.length
-        })
+        
+        // Safety Check: If it was a network timeout, we already failed it permanently above.
+        // We can detect this by checking if success is false but successAccount is set
+        if (!success && successAccount) {
+            console.log(`🔄 Skipping auto-retry for run #${run.run_number} due to dangerous timeout state.`)
+        } else {
+            console.log(`🔄 All ${accountsToTry.length} accounts failed (attempt #${retryCount}), reverting to pending for auto-retry`)
+            await supabase.from('organic_run_schedule').update({
+              status: 'pending',
+              started_at: null,
+              error_message: `[Auto-retry #${retryCount}] All ${accountsToTry.length} accounts busy: ${lastError}`,
+              provider_response: providerResult,
+              provider_account_id: null,
+              retry_count: retryCount,
+              last_status_check: new Date().toISOString(),
+            }).eq('id', run.id)
+            skipped++
+            results.push({ 
+              run_id: run.id, 
+              type: item.engagement_type, 
+              run_number: run.run_number, 
+              success: false, 
+              error: lastError, 
+              will_retry: true,
+              retry_attempt: retryCount,
+              accounts_tried: accountsToTry.length
+            })
+        }
       }
 
       // Small delay between runs to avoid rate limiting
@@ -1513,11 +1564,10 @@ serve(async (req) => {
             break
           }
         } catch (fetchError: any) {
-          lastError = 'Network error'
-          if (attempt < MAX_RETRIES) {
-            await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS * attempt))
-            retried++
-          }
+          lastError = 'Network error or timeout: ' + (fetchError.message || 'Unknown')
+          console.log(`🚨 DANGEROUS NETWORK ERROR on legacy run. Order may be placed. Breaking to prevent double order.`)
+          // DANGER: We must break and not retry to avoid duplicating the order!
+          break
         }
       }
 
