@@ -1203,13 +1203,17 @@ serve(async (req) => {
               continue
             }
 
-            console.log(`🧾 Provider returned Order ID ${providerOrderId} — verifying status...`)
+            // Give SMM panel 3 seconds to register the order before checking status
+            // Most panels take 2-5s to process a new order in their system
+            await new Promise(r => setTimeout(r, 3000))
+            
+            console.log(`🧾 Provider returned Order ID ${providerOrderId} — verifying status (5 attempts, 3s apart)...`)
             const statusCheck = await checkProviderOrderStatusWithRetries({
               apiUrl: selectedAccount.api_url,
               apiKey: selectedAccount.api_key,
               providerOrderId,
-              maxAttempts: 3,
-              attemptDelayMs: 1500,
+              maxAttempts: 5,     // Increased from 3 → 5
+              attemptDelayMs: 3000, // Increased from 1.5s → 3s (15s total window)
             })
 
             if (!statusCheck.ok) {
@@ -1222,11 +1226,13 @@ serve(async (req) => {
                 verify_raw: statusCheck.rawText,
               }
 
-              // STOP HERE: Order is placed, do NOT try next provider
-              verifiedStatus = 'Pending Verification'
+              // STOP HERE: Order IS placed (provider gave us order ID), do NOT try next provider
+              // Use 'Pending' (not 'Pending Verification') so check-order-status picks it up
+              // and keeps polling until provider confirms delivery
+              verifiedStatus = 'Pending'
               successAccount = selectedAccount
               success = true
-              console.log(`⚠️ Order ${providerOrderId} placed on ${selectedAccount.name} but verification failed. Breaking loop to avoid double orders.`)
+              console.log(`⚠️ Order ${providerOrderId} placed on ${selectedAccount.name} — verification timed out, will poll via check-order-status`)
               break 
             }
 

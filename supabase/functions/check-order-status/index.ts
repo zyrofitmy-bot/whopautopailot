@@ -84,15 +84,15 @@ Deno.serve(async (req) => {
           service:services(provider_id)
         )
       `)
-      // Check ONLY:
+      // Check:
       // 1) started runs (normal — actively waiting for provider to confirm)
-      // 2) "auto-completed" runs whose provider_status is STILL non-terminal (Pending/In progress)
-      //    BUT only if they were auto-completed (error_message has 'Auto-completed')
-      // REMOVED: The broad "completed runs with non-terminal status" query was causing
-      // duplicate retries — completed runs were being re-flagged as failed and re-ordered!
+      // 2) auto-completed runs with non-terminal provider_status (stuck > 10min)
+      // 3) completed runs where provider_status='Pending' (verification timed out after order placed)
+      //    These need polling until provider confirms actual delivery
       .or(
         'status.eq.started,' +
-        'and(status.eq.completed,error_message.ilike.%Auto-completed%,provider_status.in.(Pending,In progress,Processing,Inprogress,Awaiting))'
+        'and(status.eq.completed,error_message.ilike.%Auto-completed%,provider_status.in.(Pending,In progress,Processing,Inprogress,Awaiting)),' +
+        'and(status.eq.completed,provider_status.eq.Pending)'
       )
       .not('provider_order_id', 'is', null)
       .not('engagement_order_item_id', 'is', null)
