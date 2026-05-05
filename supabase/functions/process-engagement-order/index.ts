@@ -334,13 +334,14 @@ serve(async (req) => {
             const runsLeft = Math.max(1, targetRuns - runNumber + 1)
             let qty = Math.round((remaining / runsLeft) * (0.8 + Math.random() * 0.4) * multiplier)
             
-            // ATOMIC CLAMP: Each run must be at least providerMin if possible
-            qty = Math.max(providerMin, Math.min(qty, remaining, maxBatchCap))
-            
             // Final adjustments: if last run or remaining too small, take it all
             if (runNumber === targetRuns || remaining <= providerMin) {
               qty = remaining
             }
+
+            // HARD CLAMP: qty can NEVER exceed remaining — prevents 2x delivery
+            qty = Math.max(providerMin, Math.min(qty, remaining, maxBatchCap))
+            qty = Math.min(qty, remaining) // absolute safety — never go over what's left
 
             scheduleEntries.push({
               engagement_order_item_id: itemId,
@@ -381,27 +382,41 @@ serve(async (req) => {
             }
           }
           
-          // Final safety net: If no runs created but quantity exists, create one massive run
-          if (validatedEntries.length === 0 && totalTargetQty > 0) {
+          // Final safety net: If no runs created but carry/quantity exists, create one run
+          // IMPORTANT: use `carry` (what's actually left unscheduled), NOT totalTargetQty
+          // Using totalTargetQty here would cause full 2x duplication!
+          if (validatedEntries.length === 0 && carry > 0) {
             validatedEntries.push({
               engagement_order_item_id: itemId,
               run_number: 1,
               scheduled_at: new Date(startTime.getTime() + 10 * 60 * 1000).toISOString(),
-              quantity_to_send: Math.max(carry, totalTargetQty),
-              base_quantity: Math.max(carry, totalTargetQty),
+              quantity_to_send: carry,
+              base_quantity: carry,
               status: 'pending'
             })
           }
           
           validatedEntries.forEach((e, i) => e.run_number = i + 1)
 
+          // FINAL GUARD: Ensure total scheduled quantity never exceeds ordered quantity
+          const scheduledSum = validatedEntries.reduce((s, r) => s + r.quantity_to_send, 0)
+          if (scheduledSum > totalTargetQty && validatedEntries.length > 0) {
+            console.warn(`⚠️ [${engType}] Over-schedule detected: ${scheduledSum} > ${totalTargetQty}. Scaling down last run.`)
+            const excess = scheduledSum - totalTargetQty
+            const last = validatedEntries[validatedEntries.length - 1]
+            last.quantity_to_send = Math.max(0, last.quantity_to_send - excess)
+            last.base_quantity = last.quantity_to_send
+            // Remove last run if it became 0
+            if (last.quantity_to_send === 0) validatedEntries.pop()
+          }
+
           if (validatedEntries.length > 0) {
             const { error: schedErr } = await supabase.from('organic_run_schedule').insert(validatedEntries)
             if (schedErr) {
                console.error(`❌ [${engType}] Insert error:`, schedErr.message)
             } else {
-               const scheduledSum = validatedEntries.reduce((s, r) => s + r.quantity_to_send, 0)
-               console.log(`✅ [${engType}] Scheduled ${validatedEntries.length} runs. (Sum: ${scheduledSum}, Target: ${totalTargetQty})`)
+               const finalSum = validatedEntries.reduce((s, r) => s + r.quantity_to_send, 0)
+               console.log(`✅ [${engType}] Scheduled ${validatedEntries.length} runs. (Sum: ${finalSum}, Target: ${totalTargetQty})${finalSum !== totalTargetQty ? ` ⚠️ MISMATCH` : ' ✓ EXACT'}`)
             }
           } else {
             console.warn(`⚠️ [${engType}] No schedule entries created (qty: ${totalTargetQty})`)
