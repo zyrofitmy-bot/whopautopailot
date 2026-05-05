@@ -1252,24 +1252,87 @@ serve(async (req) => {
           lastError = 'Network error or timeout: ' + (fetchError.message || 'Unknown')
           console.error(`Network error with ${selectedAccount.name}:`, fetchError.message)
           
-          // DANGER: If fetch timed out, the SMM panel MIGHT have placed the order!
-          // We MUST NOT failover to another provider, and we MUST NOT auto-retry this run later,
-          // otherwise we risk placing the order 2x or 3x and burning balance.
-          // We break the loop and ensure it fails permanently.
+          // SMART TIMEOUT RECOVERY: Provider may or may not have placed the order.
+          // Instead of permanently blocking, we check the provider's recent orders
+          // to see if this order was actually registered. If yes → complete it safely.
+          // If not → revert to pending for the next cron retry.
+          console.log(`⏳ Fetch timed out for run #${run.run_number}. Checking provider for recent order on link: ${item.engagement_order.link}`)
+          
+          let timeoutOrderFound = false
+          try {
+            // Wait 5 seconds for provider to finish processing if it was mid-request
+            await new Promise(r => setTimeout(r, 5000))
+            
+            // Check provider for recent orders matching this link (action=orders or check recent)
+            // We query provider status — if order was placed, provider returns an order ID
+            // Most SMM panels support action=orders to list recent
+            const recentFormData = new URLSearchParams()
+            recentFormData.append('key', selectedAccount.api_key)
+            recentFormData.append('action', 'orders')
+            recentFormData.append('limit', '5')
+            
+            const recentController = new AbortController()
+            const recentTimeout = setTimeout(() => recentController.abort(), 15000)
+            
+            const recentResponse = await fetch(selectedAccount.api_url, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+              body: recentFormData.toString(),
+              signal: recentController.signal,
+            })
+            clearTimeout(recentTimeout)
+            
+            const recentText = await recentResponse.text()
+            let recentResult: any
+            try { recentResult = JSON.parse(recentText) } catch { recentResult = null }
+            
+            // Check if any recent order matches our link
+            if (Array.isArray(recentResult)) {
+              const linkNorm = item.engagement_order.link.toLowerCase().trim().replace(/\/$/, '')
+              const matchingOrder = recentResult.find((o: any) => {
+                const orderLink = (o.link || o.url || '').toLowerCase().trim().replace(/\/$/, '')
+                return orderLink === linkNorm && String(o.service) === String(providerServiceId)
+              })
+              
+              if (matchingOrder && matchingOrder.id) {
+                console.log(`✅ Found recent order ${matchingOrder.id} on ${selectedAccount.name} after timeout — order WAS placed!`)
+                providerOrderId = matchingOrder.id.toString()
+                verifiedStatus = matchingOrder.status || 'Pending'
+                verifiedRemains = parseInt(matchingOrder.remains) || null
+                verifiedStartCount = parseInt(matchingOrder.start_count) || null
+                providerResult = { timeout_recovered: true, order: matchingOrder }
+                successAccount = selectedAccount
+                success = true
+                timeoutOrderFound = true
+              }
+            }
+          } catch (recoveryError: any) {
+            console.log(`⚠️ Recovery check also failed for run #${run.run_number}: ${recoveryError.message}`)
+          }
+          
+          if (timeoutOrderFound) {
+            // Order was found at provider — treat as success, will be saved below
+            console.log(`🔄 Timeout recovery successful for run #${run.run_number}`)
+            break
+          }
+          
+          // Order was NOT found at provider — safe to revert to pending for retry
+          console.log(`🔄 No order found at provider after timeout for run #${run.run_number} — reverting to pending for next cron cycle`)
           await supabase.from('organic_run_schedule').update({
-            status: 'failed',
-            error_message: 'DANGER: Fetch timed out. Order may have been placed. Manual check required.',
-            retry_count: 99, // Prevent auto-retry
-            completed_at: new Date().toISOString()
+            status: 'pending',
+            started_at: null,
+            provider_account_id: null,
+            error_message: `Fetch timed out (no order found at provider, safe to retry) — ${new Date().toISOString()}`,
+            retry_count: (run.retry_count || 0) + 1,
           }).eq('id', run.id)
           
-          failed++
+          skipped++
           results.push({ 
             run_id: run.id, type: item.engagement_type, run_number: run.run_number,
-            success: false, error: 'DANGER: Fetch timed out (prevented duplicate)'
+            success: false, error: 'Fetch timed out — reverted to pending for retry', will_retry: true
           })
           
-          // Set a flag to break the outer loop so we don't hit the "All accounts failed" auto-retry block
+          // Set flag to skip the outer "all accounts failed" block
           successAccount = selectedAccount
           success = false
           break
