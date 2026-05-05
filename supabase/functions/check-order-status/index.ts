@@ -84,14 +84,15 @@ Deno.serve(async (req) => {
           service:services(provider_id)
         )
       `)
-      // Check ALL of these:
-      // 1) started runs (normal — actively waiting for provider)
-      // 2) "auto-completed" runs still pending/in-progress at provider
-      // 3) completed runs whose provider_status is NOT terminal — keep syncing delivery data
+      // Check ONLY:
+      // 1) started runs (normal — actively waiting for provider to confirm)
+      // 2) "auto-completed" runs whose provider_status is STILL non-terminal (Pending/In progress)
+      //    BUT only if they were auto-completed (error_message has 'Auto-completed')
+      // REMOVED: The broad "completed runs with non-terminal status" query was causing
+      // duplicate retries — completed runs were being re-flagged as failed and re-ordered!
       .or(
         'status.eq.started,' +
-        'and(status.eq.completed,error_message.ilike.%Auto-completed%,provider_status.in.(Pending,In progress,Processing,Inprogress,Awaiting)),' +
-        'and(status.eq.completed,provider_status.not.in.(Completed,Complete,Partial,Refunded,Canceled,Cancelled,Error,Failed,Success,Refund,Canscelled))'
+        'and(status.eq.completed,error_message.ilike.%Auto-completed%,provider_status.in.(Pending,In progress,Processing,Inprogress,Awaiting))'
       )
       .not('provider_order_id', 'is', null)
       .not('engagement_order_item_id', 'is', null)
@@ -291,24 +292,40 @@ Deno.serve(async (req) => {
           await updateEngagementOrderStatus(supabase, run.engagement_order_item?.engagement_order_id, run.engagement_order_item?.id)
 
         } else if (providerStatus === 'cancelled' || providerStatus === 'canceled' || providerStatus === 'refunded' || providerStatus === 'refund' || providerStatus === 'canscelled') {
-          // Check if we can retry this run - AGGRESSIVE retries (up to 15)
+          // SAFE RETRY: Only retry if this run has NOT already delivered its quantity.
+          // A cancelled/refunded order means the panel didn't deliver — we MUST retry.
+          // BUT: if remains === 0 (fully delivered before cancellation), mark as completed.
           const currentRetryCount = run.retry_count || 0
-          if (currentRetryCount < 15) {
-            console.log(`🔄 Marking cancelled/refunded run for retry (attempt ${currentRetryCount + 1}/15)`)
+          const actualRemains = parseInt(result.remains) || 0
+          
+          // If remains is 0 — all views were delivered before the cancel/refund. Mark complete.
+          if (actualRemains === 0) {
+            console.log(`✅ Run cancelled/refunded but remains=0 — treating as completed (all delivered)`)
+            await supabase.from('organic_run_schedule').update({
+              ...trackingUpdate,
+              status: 'completed',
+              completed_at: new Date().toISOString(),
+              error_message: `Completed (provider cancelled after full delivery)`
+            }).eq('id', run.id)
+            completed++
+            await updateEngagementOrderStatus(supabase, run.engagement_order_item?.engagement_order_id, run.engagement_order_item?.id)
+          } else if (currentRetryCount < 10) {
+            // Genuine cancel with undelivered quantity — retry up to 10 times
+            console.log(`🔄 Marking cancelled/refunded run for retry (attempt ${currentRetryCount + 1}/10, remains: ${actualRemains})`)
             await supabase.from('organic_run_schedule').update({
               ...trackingUpdate,
               status: 'failed',
               completed_at: new Date().toISOString(),
-              error_message: `Auto-retry: ${providerStatus} by provider`
+              error_message: `Auto-retry: ${providerStatus} by provider (${actualRemains} undelivered)`
             }).eq('id', run.id)
             failed++
           } else {
-            console.log(`❌ Max retries reached for cancelled run`)
+            console.log(`❌ Max retries (10) reached for cancelled run — marking permanently failed`)
             await supabase.from('organic_run_schedule').update({
               ...trackingUpdate,
               status: 'failed',
               completed_at: new Date().toISOString(),
-              error_message: `Max retries (15) reached: ${providerStatus} by provider`,
+              error_message: `Max retries (10) reached: ${providerStatus} by provider`,
               retry_count: 99
             }).eq('id', run.id)
             failed++
@@ -350,11 +367,11 @@ Deno.serve(async (req) => {
     let legacyQuery = supabase
       .from('organic_run_schedule')
       .select('*, order:orders(*, service:services(provider_id))')
-      // Check started + auto-completed + completed but non-terminal at provider
+      // Check ONLY started + auto-completed non-terminal runs (NOT all completed runs)
+      // Removed broad "completed with non-terminal status" to prevent duplicate retries
       .or(
         'status.eq.started,' +
-        'and(status.eq.completed,error_message.ilike.%Auto-completed%,provider_status.in.(Pending,In progress,Processing,Inprogress,Awaiting)),' +
-        'and(status.eq.completed,provider_status.not.in.(Completed,Complete,Partial,Refunded,Canceled,Cancelled,Error,Failed,Success,Refund,Canscelled))'
+        'and(status.eq.completed,error_message.ilike.%Auto-completed%,provider_status.in.(Pending,In progress,Processing,Inprogress,Awaiting))'
       )
       .not('provider_order_id', 'is', null)
       .not('order_id', 'is', null)
